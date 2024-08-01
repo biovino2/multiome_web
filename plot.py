@@ -11,21 +11,21 @@ import pandas as pd
 import streamlit as st
 
 
-def load_dfs(path: str) -> 'list[pd.DataFrame]':
+def load_dfs(path: str, file_list: 'list[str]') -> 'list[pd.DataFrame]':
     """Returns a list of dataframes from the csv files in the given path.
 
     Args:
         path (str): The path to the csv files.
+        file_list (list[str]): File names to load
 
     Returns:
         list[pd.Dataframe]: A list of dataframes.
     """
 
     df_list = []
-    for file in os.listdir(path):
-        if file.endswith('.csv'):
-            df = pd.read_csv(os.path.join(path, file))
-            df_list.append(df)
+    for file in file_list:
+        df = pd.read_csv(f'{path}/{file}.csv')
+        df_list.append(df)
 
     return df_list
 
@@ -123,10 +123,10 @@ def main():
     """
     """
 
-    df_list = load_dfs('data')
-    
-    # Define the timepoints
-    timepoints = ["0budstage", "5somites", "10somites", "15somites", "20somites", "30somites"]
+    # Define the timepoints and load data in order
+    timepoints = {"0budstage": 'TDR126', "5somites": 'TDR127', "10somites": 'TDR128',
+                   "15somites": 'TDR118', "20somites": 'TDR125', "30somites": 'TDR124'}
+    df_list = load_dfs('data', list(timepoints.values()))
 
     # Load the "viridis" colormap
     viridis = plt.cm.get_cmap('viridis', 256)
@@ -139,9 +139,19 @@ def main():
 
     # Create a dictionary to map timepoints to colors
     color_dict = dict(zip(timepoints, colors))
+    
+    # Get all gene names from the data and have user choose
+    gene_names = df_list[0]['gene_short_name'].unique()
+    option = st.selectbox(
+        'Select a gene to plot',
+        gene_names
+    )
 
-    fig = plot_CCANs_genomic_loci(df_list, gene_name="myf5", timepoints=timepoints, colordict=color_dict)
-
+    # Create and plot figure
+    fig = plot_CCANs_genomic_loci(df_list,
+                                gene_name=option,
+                                timepoints=list(timepoints.keys()),
+                                colordict=color_dict)
     st.pyplot(fig)
 
 
