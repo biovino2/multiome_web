@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.ticker import ScalarFormatter
 import numpy as np
-import os
 import pandas as pd
 import streamlit as st
 
