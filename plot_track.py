@@ -1,35 +1,25 @@
+"""Loads the data from the csv file and plots a gene track plot on streamlit.
+
+Ben Iovino  08/06/24    CZ-Biohub
+"""
+
 from figeno import figeno_make
 import polars as pl
 import streamlit as st
-from plot_ccan import load_dfs
+from plot_ccan import load_dfs, get_gene_names
 
 
-def main():
+def define_config(chrom: str, min: int, max: int) -> 'dict[str, dict]':
+    """Returns a dictionary with the configuration for the gene rack plot.
+
+    Args:
+        chrom (str): The chromosome.
+        min (int): The start coordinate.
+        max (int): The end coordinate.
+
+    Returns:
+        dict[str, dict]: The configuration dictionary.
     """
-    """
-
-    df = pl.read_csv('data/GRCz11.csv')
-    timepoints = {"0 budstage": 'TDR126', "5 somites": 'TDR127', "10 somites": 'TDR128',
-                   "15 somites": 'TDR118', "20 somites": 'TDR125', "30 somites": 'TDR124'}
-    df_list = load_dfs('data', list(timepoints.values()))
-
-    # Get all gene names from the data and have user choose
-    gene_names = set()
-    for dfl in df_list:
-        gene_names.update(dfl['gene_short_name'])
-    option = st.selectbox(
-        'Select a gene to plot',
-        gene_names
-    )
-
-    gene = df.filter(pl.col('gene_name') == option)
-    chrom = gene['seqname'].to_list()[0]
-    if gene['strand'][0] == '+':
-        min = gene['start'].min()
-        max = gene['end'].max()
-    else:
-        min = gene['end'].max()
-        max = gene['start'].min()
 
     config = {}
     config["general"] = {
@@ -40,7 +30,7 @@ def main():
 
     config["output"] = {
             "file": "figure.png",
-            "dpi": 400,
+            "dpi": 300,
             "width": 180
         }
 
@@ -82,6 +72,50 @@ def main():
             }
 
     ]
+
+    return config
+
+
+def get_gene_info(df: pl.DataFrame, gene_name: str) -> 'tuple[str, int, int]':
+    """Returns information about the gene for the gene track plot.
+    
+    Args:
+        df (pl.DataFrame): The dataframe to subset.
+        gene_name (str): The gene name to subset.
+        
+    Returns:
+        tuple(str, int, int): The chromosome, start, and end coordinates for the gene.
+    """
+
+    gene = df.filter(pl.col('gene_name') == gene_name)
+    chrom = gene['seqname'].to_list()[0]
+    if gene['strand'][0] == '+':
+        min = gene['start'].min()
+        max = gene['end'].max()
+    else:
+        min = gene['end'].max()
+        max = gene['start'].min()
+
+    return chrom, min, max
+
+
+def main():
+    """
+    """
+
+    df = pl.read_csv('data/GRCz11.csv')
+    timepoints = {"0 budstage": 'TDR126', "5 somites": 'TDR127', "10 somites": 'TDR128',
+                   "15 somites": 'TDR118', "20 somites": 'TDR125', "30 somites": 'TDR124'}
+    df_list = load_dfs('data', list(timepoints.values()))
+    gene_names = get_gene_names(df_list)
+
+    # Take user input for gene name
+    option = st.selectbox(
+        'Select a gene to plot',
+        gene_names
+    )
+    chrom, min, max = get_gene_info(df, option)
+    config = define_config(chrom, min, max)
     
     figeno_make(config)
     st.image("figure.png")

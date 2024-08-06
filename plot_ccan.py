@@ -84,12 +84,10 @@ def get_xticks(beg: int, end: int) -> 'list[int]':
         list[int]: The xticks for the genomic region plot.
     """
 
-    st.write(beg, end)
     if end - beg <= 5.0:
         mid = (beg + end) / 2
         beg = mid-2.5
         end = mid+2.5
-        st.write(beg, end, mid)
         xticks = np.arange(beg, end, 1, dtype=int)
     else:
         diff = end - beg
@@ -123,6 +121,23 @@ def get_color_dict(timepoints: 'dict[str, str]') -> 'dict[str, np.array]':
     color_dict = dict(zip(timepoints.keys(), colors))
 
     return color_dict
+
+
+def get_gene_names(dfs: 'list[pd.DataFrame]') -> 'set[str]':
+    """Returns a set of gene names from the dataframes.
+
+    Args:
+        dfs (list[pd.DataFrame]): A list of dataframes.
+
+    Returns:
+        set[str]: A set of gene names.
+    """
+
+    gene_names = set()
+    for df in dfs:
+        gene_names.update(df['gene_short_name'])
+
+    return gene_names
 
 
 def plot_ccans_genomic_loci(dfs: 'list[pd.DataFrame]', timepoints: 'list[str]', gene_name: str,
@@ -191,11 +206,9 @@ def main():
                    "15 somites": 'TDR118', "20 somites": 'TDR125', "30 somites": 'TDR124'}
     df_list = load_dfs('data', list(timepoints.values()))
     color_dict = get_color_dict(timepoints)
+    gene_names = get_gene_names(df_list)
 
-    # Get all gene names from the data and have user choose
-    gene_names = set()
-    for df in df_list:
-        gene_names.update(df['gene_short_name'])
+    # Take user input for gene name
     option = st.selectbox(
         'Select a gene to plot',
         gene_names
