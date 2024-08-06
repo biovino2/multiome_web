@@ -193,7 +193,9 @@ def main():
     color_dict = get_color_dict(timepoints)
 
     # Get all gene names from the data and have user choose
-    gene_names = df_list[0]['gene_short_name'].unique()
+    gene_names = set()
+    for df in df_list:
+        gene_names.update(df['gene_short_name'])
     option = st.selectbox(
         'Select a gene to plot',
         gene_names
