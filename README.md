@@ -17,9 +17,9 @@ Then install the following requirements (conda recommended):
 - figeno==1.4.4
 - gtfparse==2.5.0
 
-## Plots with streamlit
+## CCAN plots with streamlit
 Run the following command to run a streamlit instance that shows CCAN and gene track plots with your gene of choice:
 
 ```
-streamlit run plot_all.py
+streamlit run ccan/plot_all.py
 ```
