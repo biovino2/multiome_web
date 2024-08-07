@@ -85,13 +85,10 @@ def get_xticks(beg: int, end: int) -> 'list[int]':
     """
 
     if end - beg <= 5.0:
-        mid = (beg + end) / 2
-        beg = mid-2.5
-        end = mid+2.5
-        xticks = np.arange(beg, end, 1, dtype=int)
+        xticks = np.array([beg-1, beg, end, end+1])
     else:
         diff = end - beg
-        xticks = np.arange(beg, end, diff/5)
+        xticks = np.arange(beg, end, diff/5, dtype=float)
         xticks = np.append(xticks, end)
 
 
@@ -184,7 +181,7 @@ def plot_ccans_genomic_loci(dfs: 'list[pd.DataFrame]', timepoints: 'list[str]', 
     ax.set_ylim(0.7, 1 + len(dfs)*0.1 + 0.5)
     ax.set_yticks([])
     ax.set_xlabel('Genomic Coordinate (kbp)')
-    ax.set_title(f'Genomic Region Plot for {gene_name} ({df_gene["chr"].iloc[0]})')
+    ax.set_title(f'Cis Co-Accessbility for {gene_name} ({df_gene["chr"].iloc[0]})')
     ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
     plt.tight_layout()
@@ -210,7 +207,7 @@ def main():
 
     # Take user input for gene name
     option = st.selectbox(
-        'Select a gene to plot',
+        st.write('Select a gene to plot'),
         gene_names
     )
 

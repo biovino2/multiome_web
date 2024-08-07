@@ -25,7 +25,7 @@ def define_config(chrom: str, min: int, max: int) -> 'dict[str, dict]':
     config["general"] = {
             "reference": "custom",
             "layout": "horizontal",
-            "genes_file": "data/GRCz11.gtf.gz"
+            "genes_file": "data/genes.gtf.gz"
         }
 
     config["output"] = {
@@ -89,14 +89,11 @@ def get_gene_info(df: pl.DataFrame, gene_name: str) -> 'tuple[str, int, int]':
 
     gene = df.filter(pl.col('gene_name') == gene_name)
     chrom = gene['seqname'].to_list()[0]
-    if gene['strand'][0] == '+':
-        min = gene['start'].min()
-        max = gene['end'].max()
-    else:
-        min = gene['end'].max()
-        max = gene['start'].min()
+    min = gene['start'].min()
+    max = gene['end'].max()
+    strand = gene['strand'].to_list()[0]
 
-    return chrom, min, max
+    return chrom, min, max, strand
 
 
 def main():
@@ -114,10 +111,11 @@ def main():
         'Select a gene to plot',
         gene_names
     )
-    chrom, min, max = get_gene_info(df, option)
+    chrom, min, max, _ = get_gene_info(df, option)
     config = define_config(chrom, min, max)
     
-    figeno_make(config)
+    fp = figeno_make(config)
+    st.write(fp)
     st.image("figure.png")
 
     

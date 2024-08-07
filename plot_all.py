@@ -21,7 +21,11 @@ def main():
     gene_names = get_gene_names(df_list)
 
     # Take user input for gene name
-    option = st.selectbox(
+    st.set_page_config(layout="wide")
+    st.title('Cis Co-Accessibility and Gene Track Plots')
+    st.write('For each gene, we plot the cis co-accessible at different timepoints, as well as the gene track.')
+    st.sidebar.markdown('# Settings')
+    option = st.sidebar.selectbox(
         'Select a gene to plot',
         gene_names
     )
@@ -31,13 +35,14 @@ def main():
                                 gene_name=option,
                                 timepoints=list(timepoints.keys()),
                                 colordict=color_dict)
-    st.pyplot(fig)
 
     # Get gene info and plot gene track
     df = pl.read_csv('data/GRCz11.csv')
-    chrom, min, max = get_gene_info(df, option)
+    chrom, min, max, strand = get_gene_info(df, option)
     config = define_config(chrom, min, max)
+    st.markdown(f'# {option}')
     figeno_make(config)
+    st.pyplot(fig)
     st.image("figure.png")
 
 
