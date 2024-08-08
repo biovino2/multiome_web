@@ -2,8 +2,6 @@
 streamlit stomping grounds
 
 ## Installation
-Not yet sure if you can run a streamlit instance on the HPC due to authorization problems. Best to run on local machine for now. All necessary data and scripts are contained in the repository.
-
 You can install this repository with the following commands:
 
 ```
@@ -18,14 +16,23 @@ Then install the following requirements (conda recommended):
 - scanpy==1.10.2
 - gtfparse==2.5.0
 
-## CCAN plots
+## Running a streamlit instance
+To run streamlit from HPC, you will run the following commands while also creating a SHH tunnel. To do so, run:
+
+```
+ssh -L <port>:localhost:<port> username@hpc_address
+```
+
+And then connect via browser. Streamlit defaults to port 8501, but you can set the port with the `-p` argument.
+
+### CCAN plots
 Run the following command to run a streamlit instance that shows CCAN and gene track plots with your gene of choice:
 
 ```
 streamlit run ccan/plot_all.py
 ```
 
-## Correlation plots
+### Correlation plots
 Run the following command to run a streamlit instance that shows correlation scatterplots between ATAC and RNA expression data:
 
 ```
