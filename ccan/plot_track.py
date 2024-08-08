@@ -6,13 +6,14 @@ Ben Iovino  08/06/24    CZ-Biohub
 import polars as pl
 
 
-def define_config(chrom: str, min: int, max: int) -> 'dict[str, dict]':
+def define_config(chrom: str, min: int, max: int, gene: str) -> 'dict[str, dict]':
     """Returns a dictionary with the configuration for the gene rack plot.
 
     Args:
         chrom (str): The chromosome.
         min (int): The start coordinate.
         max (int): The end coordinate.
+        gene (str): The gene name.
 
     Returns:
         dict[str, dict]: The configuration dictionary.
@@ -22,7 +23,7 @@ def define_config(chrom: str, min: int, max: int) -> 'dict[str, dict]':
     config["general"] = {
             "reference": "custom",
             "layout": "horizontal",
-            "genes_file": "ccan/data/genes.gtf.gz"
+            "genes_file": "ccan/data/GRCz11.gtf.gz"
         }
 
     config["output"] = {
@@ -52,7 +53,7 @@ def define_config(chrom: str, min: int, max: int) -> 'dict[str, dict]':
                 "collapsed": True,
 			    "only_protein_coding": False,
 			    "exon_color": "#2980b9",
-			    "genes": "auto"
+			    "genes": f"{gene}"
             },
             {
                 "type": "chr_axis",

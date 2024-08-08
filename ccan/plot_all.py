@@ -39,11 +39,11 @@ def main():
     # Get gene info and plot gene track
     df = pl.read_csv('ccan/data/GRCz11.csv')
     chrom, min, max, strand = get_gene_info(df, option)
-    config = define_config(chrom, min, max)
+    config = define_config(chrom, min, max, option)
     st.markdown(f'# {option}')
     figeno_make(config)
     st.pyplot(fig)
-    st.image("ccan/figure.png")
+    st.image("ccan/data/figure.png")
 
 
 if __name__ == "__main__":

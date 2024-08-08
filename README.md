@@ -14,7 +14,7 @@ cd streamlit/
 Then install the following requirements (conda recommended):
 - python==3.12.4
 - streamlit==1.37.0
-- figeno==1.4.4
+- figeno==1.4.5
 - gtfparse==2.5.0
 
 ## CCAN plots with streamlit
