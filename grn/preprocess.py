@@ -51,7 +51,6 @@ def get_dicts(links: 'dict[str: co.Links]') -> 'tuple[dict, dict]':
     merged_score = {}
     filtered_GRNs = {}
     for dataset in links.keys():
-        merged_score[dataset] = links[dataset].merged_score
         filtered_GRNs[dataset] = links[dataset].filtered_links
 
     return merged_score, filtered_GRNs
