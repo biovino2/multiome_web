@@ -6,6 +6,7 @@ Ben Iovino  08/09/24    CZ-Biohub
 import numpy as np
 import pandas as pd
 import plotly.express as px
+from plotly.subplots import make_subplots
 import seaborn as sns
 import streamlit as st
 
@@ -31,12 +32,11 @@ def load_data(celltype: str, timepoint: str) -> 'tuple[pd.DataFrame, np.array, n
     return df_counts, row_linkage, col_linkage
 
 
-def st_setup():
+def st_setup(celltypes: list[str]):
     """Initializes streamlit session.
 
     Args:
         celltypes: The list of cell types.
-        timepoints: The list of timepoints.
     """
 
     st.set_page_config(layout="wide")
@@ -44,40 +44,72 @@ def st_setup():
     st.write('For each timepoint, we plot the CellOracle GRNs for each cell type.')
     st.sidebar.markdown('# Settings')
 
+    # Initialize drop down boxes
+    if "selectboxes" not in st.session_state:
+        st.session_state.selectboxes = [0]
 
-def plot_grn(celltype, timepoint) -> 'plotly.express.imshow':
+    # Set up buttons for adding/removing timepoints
+    with st.sidebar:
+        add, reset = st.columns([1, 1])
+        with add:
+            if st.button('Add Timepoint'):
+                st.session_state.selectboxes.append(len(st.session_state.selectboxes))
+        with reset:
+            if st.button('Reset'):
+                st.session_state.selectboxes = [0]
+
+    # Get celltype
+    celltype = st.sidebar.selectbox(
+        'Select a cell type to plot',
+        celltypes
+    )
+
+    return celltype
+
+
+def custom_scale() -> 'list[list[float, str]]':
+    """Returns custom color scale for plotly.
+
+    Returns:
+        colorscale (list): The custom color scale.
+    """
+
+    # Blue, grey, to red
+    colorscale = [
+        [0, 'rgb(0,0,255)'],
+        [0.1, 'rgb(188,188,188)'],
+        [0.2, 'rgb(255,0,0)']
+        ]
+    
+    return colorscale
+
+
+def plot_grn(celltype: str, timepoint: str) -> 'px.imshow':
     """Returns a plotly figure of the GRN clustermap.
 
     Args:
-        celltype: The celltype to plot.
-        timepoint: The timepoint to plot.
+        celltype (str): The celltype to plot.
+        timepoint (str): The timepoint to plot.
 
     Returns:
         fig (plotly.express.imshow): The plotly figure.
     """
 
+    # Seaborn clustermap
     vmax, vmin = 0.1, -0.1
     df_counts, row_linkage, col_linkage = load_data(celltype, timepoint)
+
+    # Create clustermap
     g = sns.clustermap(df_counts, method='ward', metric='euclidean', 
-                       cmap='coolwarm', standard_scale=None, 
                        row_cluster=True, col_cluster=True, 
                        xticklabels=df_counts.columns.tolist(),
                        yticklabels=df_counts.index.tolist(), 
                        vmax=vmax, vmin=vmin, 
                        row_linkage=row_linkage, col_linkage=col_linkage)
 
-    # Adjust the font size for the labels
-    g.ax_heatmap.tick_params(axis='x', labelsize=1)
-    g.ax_heatmap.tick_params(axis='y', labelsize=1)
-
-    # hide the dendrograms
-    g.ax_row_dendrogram.set_visible(False)
-    g.ax_col_dendrogram.set_visible(False)
-
     # Convert seaborn plot to plotly and plot on page
     fig = px.imshow(g.data2d,
-                    color_continuous_scale='balance')
-    fig.update_layout(width=1000, height=800)
+                    labels=dict(x='Transcription Factor', y='Gene'))
 
     return fig
 
@@ -85,27 +117,17 @@ def plot_grn(celltype, timepoint) -> 'plotly.express.imshow':
 def main():
     """
     """
-
-    timepoints = {'TDR126': '0somites',
-                'TDR127': '5somites',
-                'TDR128': '10somites',
-                'TDR118': '15 somites',
-                'TDR125': '20somites',
-                'TDR124': '30 somites'}
+    
+    timepoints = {'0 hours post fertilization': 'TDR126',
+              '5 hours post fertilization': 'TDR127',
+              '10 hours post fertilization': 'TDR128',
+              '15 hours post fertilization': 'TDR118',
+              '20 hours post fertilization': 'TDR125',
+              '30 hours post fertilization': 'TDR124'}
     celltypes = ['fast_muscle', 'neural_posterior', 'NMPs', 'PSM', 'somites', 'spinal_cord', 'tail_bud']
+    celltype = st_setup(celltypes)
 
-    st_setup()
-    celltype = st.sidebar.selectbox(
-        'Select a cell type to plot',
-        celltypes
-    )
-
-    if "timepoints" not in st.session_state:
-        st.session_state.selectboxes = [0]
-
-    if st.sidebar.button("Add timepoint"):
-        st.session_state.selectboxes.append(len(st.session_state.selectboxes))
-
+    # Graph selected timepoints
     selected_timepoints = []
     for i, key in enumerate(st.session_state.selectboxes):
         st.sidebar.selectbox(
@@ -114,9 +136,22 @@ def main():
             key=key
         )
         selected_timepoints.append(st.session_state[key])
+        fig = make_subplots(rows=1,
+                            cols=len(selected_timepoints),
+                            horizontal_spacing=.1,
+                            subplot_titles=[f"{tp}" for tp in selected_timepoints])
 
-    # Plot the clustermap
-    fig = plot_grn(celltype, 'TDR126')
+    # Create a single plot containing all GRNs
+    for i, timepoint in enumerate(selected_timepoints):
+        plot = plot_grn(celltype, timepoints[timepoint])
+        for trace in plot['data']:
+            fig.add_trace(trace, row=1, col=i+1)
+        fig.update_xaxes(tickfont=dict(size=8), row=1, col=i+1)
+        fig.update_yaxes(tickfont=dict(size=8), row=1, col=i+1)
+
+    # Display complete figure
+    fig.update_layout(height=800, width=3000, showlegend=False)
+    fig.update_layout(coloraxis=dict(colorscale=custom_scale()))
     st.plotly_chart(fig)
 
 
