@@ -171,10 +171,6 @@ def plot_genes(genes: 'list[str]', dict_meta: 'dict[str:sc.AnnData]', rna_meta, 
     return fig
 
 
-def add_selectbox():
-    st.session_state.selectboxes.append(len(st.session_state.selectboxes))
-
-
 def main():
     """
     """
