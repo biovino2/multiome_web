@@ -67,23 +67,6 @@ def st_setup(celltypes: list[str]):
     return celltype
 
 
-def custom_scale() -> 'list[list[float, str]]':
-    """Returns custom color scale for plotly.
-
-    Returns:
-        colorscale (list): The custom color scale.
-    """
-
-    # Blue, grey, to red
-    colorscale = [
-        [0, 'rgb(0,0,255)'],
-        [0.1, 'rgb(188,188,188)'],
-        [0.2, 'rgb(255,0,0)']
-        ]
-    
-    return colorscale
-
-
 def plot_grn(celltype: str, timepoint: str) -> 'px.imshow':
     """Returns a plotly figure of the GRN clustermap.
 
@@ -112,6 +95,27 @@ def plot_grn(celltype: str, timepoint: str) -> 'px.imshow':
                     labels=dict(x='Transcription Factor', y='Gene'))
 
     return fig
+
+
+def save_config() -> dict:
+    """Returns a config to save plotly figure as SVG.
+
+    Returns:
+        config (dict): The configuration.
+    """
+
+    config = {
+    'toImageButtonOptions': {
+        'format': 'svg', # one of png, svg, jpeg, webp
+        'filename': 'grn_clustermap',
+        'height': None,
+        'width': None,
+        'scale': 1 # Multiply title/legend/axis/canvas sizes by this factor
+    },
+    'displayModeBar': True
+    }
+
+    return config
 
 
 def main():
@@ -148,11 +152,10 @@ def main():
             fig.add_trace(trace, row=1, col=i+1)
         fig.update_xaxes(tickfont=dict(size=8), row=1, col=i+1)
         fig.update_yaxes(tickfont=dict(size=8), row=1, col=i+1)
-
-    # Display complete figure
     fig.update_layout(height=800, width=3000, showlegend=False)
-    fig.update_layout(coloraxis=dict(colorscale=custom_scale()))
-    st.plotly_chart(fig)
+    fig.update_layout(coloraxis=dict(colorscale='RdBu_r'))
+
+    st.plotly_chart(fig, config=save_config())
 
 
 if __name__ == '__main__':
