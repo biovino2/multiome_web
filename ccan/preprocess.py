@@ -3,9 +3,11 @@
 Ben Iovino  08/07/24    CZ-Biohub
 """
 
+from bs4 import BeautifulSoup
 import os
 from gtfparse import read_gtf
 import polars as pl
+import re
 from urllib.request import urlretrieve
 
 
@@ -61,7 +63,6 @@ def get_zfin_annotations(path: str):
 
     Args:
         path (str): The path to save the ZFIN annotations.
-        gene_names (list): The list of gene names.
     """
 
     if not os.path.exists(f'{path}/zfin/annotations'):
@@ -81,6 +82,43 @@ def get_zfin_annotations(path: str):
                 continue
 
 
+def parse_html(path: str):
+    """Parses ZFIN annotations for gene information and writes to file.
+
+    Args:
+        path (str): The path to the ZFIN annotations.
+    """
+
+    info: dict[str, str] = {}
+    key_words = ['Predicted', 'predicted',
+                'Involved', 'involved',
+                'Expressed', 'Is expressed',
+                'Orthologous', 'orthologous',
+                'Exhibits', 'exhibits']
+    
+    # Parse each HTML File
+    regex = r'^(.*)\.html$'  # capture everything before .html extension
+    for html in os.listdir(f'{path}/zfin/annotations'):
+        with open(f'{path}/zfin/annotations/{html}', 'r') as file:
+            html_content = file.read()
+
+        # Parse for all dd tags
+        soup = BeautifulSoup(html_content, 'html.parser')
+        dd_tags = soup.find_all('dd', class_='col-sm-10')
+        for tag in dd_tags:
+            
+            # If any key words are found in tag, save to dict
+            if any(word in tag.text for word in key_words):
+                gene = re.match(regex, html).group(1)
+                info[gene] = tag.text.strip()
+                break
+
+    # Write info to file
+    with open(f'{path}/zfin/info.txt', 'w') as file:
+        for key, value in info.items():
+            file.write(f'{key}\t{value}\n')
+
+
 def main():
     """
     """
@@ -92,6 +130,7 @@ def main():
     gene_names = parse_gtf(path, 'GRCz11.gtf.gz')
     get_zfin_genes(path, gene_names)
     get_zfin_annotations(path)
+    parse_html(path)
 
 
 if __name__ == "__main__":
