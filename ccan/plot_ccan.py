@@ -87,9 +87,8 @@ def get_xticks(beg: int, end: int) -> 'list[int]':
         xticks = np.array([beg-1, beg, end, end+1])
     else:
         diff = end - beg
-        xticks = np.arange(beg, end, diff/5, dtype=float)
+        xticks = np.arange(beg, end, diff/5)
         xticks = np.append(xticks, end)
-
 
     return xticks
 
@@ -136,8 +135,8 @@ def get_gene_names(dfs: 'list[pd.DataFrame]') -> 'set[str]':
     return gene_names
 
 
-def plot_ccans_genomic_loci(dfs: 'list[pd.DataFrame]', timepoints: 'list[str]', gene_name: str,
-                            colordict: 'dict[str: np.array]', save_fig=False, figpath = None):
+def plot_ccans_genomic_loci(dfs: 'list[pd.DataFrame]', timepoints: 'list[str]',
+                            gene_name: str, direction: str, colordict: 'dict[str: np.array]'):
     """
     This function takes a list of CCANs (dataframes for each timepoint), and plots the genomic
       region with CCANs for each timepoint for "gene_name".
@@ -146,7 +145,8 @@ def plot_ccans_genomic_loci(dfs: 'list[pd.DataFrame]', timepoints: 'list[str]', 
     1) dfs (list[pd.Dataframe]): A list of dataframes (one dataframe for each timepoint), i.e. [df1, df2, df3]
     2) timepoints (list(str)): A list of timepoint labels corresponding to each dataframe in CCANs
     3) gene_name (str): Name of the gene, i.e. "myf5", "her1"
-    4) colordict (dict[str: np.array]): A dictionary of {timepoints:colors (viridis)}
+    4) direction (str): The direction of the gene, i.e. "+" or "-"
+    5) colordict (dict[str: np.array]): A dictionary of {timepoints:colors (viridis)}
     """
 
     if len(dfs) != len(timepoints):
@@ -169,25 +169,39 @@ def plot_ccans_genomic_loci(dfs: 'list[pd.DataFrame]', timepoints: 'list[str]', 
         plot_peaks(df_gene, ax, 1 + index*0.1, colordict[stage], stage)
 
     ax.plot([genomic_start, genomic_end], [1, 1], color='grey', linewidth=2)
-
     # Set and format xticks
     ax.set_xticks(get_xticks(genomic_start, genomic_end))
     formatter = ScalarFormatter(useOffset=False)
     formatter.set_scientific(False)
     ax.xaxis.set_major_formatter(formatter)
 
+    # Plot line at TSS
+    if direction == '+':
+        ax.plot([genomic_start, genomic_start], [1, 2], color='black', linewidth=1)
+    else:
+        ax.plot([genomic_end, genomic_end], [1, 2], color='black', linewidth=1)
+
+    # Plot arrow for gene direction based with size based on genomic region
+    arrow_length = (genomic_end - genomic_start) / 20
+    head_length = arrow_length / 2
+    if direction == '+':
+        ax.arrow(genomic_start, 2, arrow_length, 0,
+                head_width=0.1, head_length=head_length, fc='black', ec='black')
+    else:
+        ax.arrow(genomic_end, 2, -arrow_length, 0,
+                head_width=0.1, head_length=head_length, fc='black', ec='black')
+
     # Format rest of plot
     ax.set_ylim(0.7, 1 + len(dfs)*0.1 + 0.5)
     ax.set_yticks([])
     ax.set_xlabel('Genomic Coordinate (kbp)')
     ax.set_title(f'Cis Co-Accessbility for {gene_name} ({df_gene["chr"].iloc[0]})')
-    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_linewidth(1.5)
+    #ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
 
-    if save_fig:
-        plt.savefig(figpath + "coverage_plot_CCANs_" + gene_name + ".png")
-        plt.savefig(figpath + "coverage_plot_CCANs_" + gene_name + ".pdf")
-
     # Return plot
-    return fig
+    return fig, genomic_start
