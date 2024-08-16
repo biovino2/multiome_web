@@ -1,4 +1,7 @@
 ccan/__pycache__
 ccan/data/figure.png
+ccan/data/zfin/annotations
 corr/data
+corr/__pycache__
 grn/data/links
+grn/settings.txt
