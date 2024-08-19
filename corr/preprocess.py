@@ -9,6 +9,51 @@ import pandas as pd
 import pickle
 
 
+def define_color_dict() -> 'dict[str:str]':
+    """Return a dictionary of colors for each cell type.
+
+    Returns:
+        dict[str, str]: The dictionary of colors.
+    """
+
+    cell_type_color_dict = {
+        'NMPs': '#8dd3c7',
+        'PSM': '#008080',
+        'differentiating_neurons': '#bebada',
+        'endocrine_pancreas': '#fb8072',
+        'endoderm': '#80b1d3',
+        'enteric_neurons': '#fdb462',
+        'epidermis': '#b3de69',
+        'fast_muscle': '#df4b9b',
+        'floor_plate': '#d9d9d9',
+        'hatching_gland': '#bc80bd',
+        'heart_myocardium': '#ccebc5',
+        'hemangioblasts': '#ffed6f',
+        'hematopoietic_vasculature': '#e41a1c',
+        'hindbrain': '#377eb8',
+        'lateral_plate_mesoderm': '#4daf4a',
+        'midbrain_hindbrain_boundary': '#984ea3',
+        'muscle': '#ff7f00',
+        'neural': '#e6ab02',
+        'neural_crest': '#a65628',
+        'neural_floor_plate': '#66a61e',
+        'neural_optic': '#999999',
+        'neural_posterior': '#393b7f',
+        'neural_telencephalon': '#fdcdac',
+        'neurons': '#cbd5e8',
+        'notochord': '#f4cae4',
+        'optic_cup': '#c0c000',
+        'pharyngeal_arches': '#fff2ae',
+        'primordial_germ_cells': '#f1e2cc',
+        'pronephros': '#cccccc',
+        'somites': '#1b9e77',
+        'spinal_cord': '#d95f02',
+        'tail_bud': '#7570b3'
+    }
+
+    return cell_type_color_dict
+
+
 def get_datasets(datasets: 'list[str]') -> 'dict[str:sc.AnnData]':
     """Returns a dictionary of adata objects for each dataset.
 
@@ -67,17 +112,58 @@ def get_datasets(datasets: 'list[str]') -> 'dict[str:sc.AnnData]':
     return dict_meta_ad
 
 
+def get_gene_dict(dict_meta: 'dict[str:sc.AnnData]') -> 'dict[str:dict[tuple[np.ndarray, np.ndarray, list[str]]]]':
+    """Returns a dictionary of genes and their corresponding expression/availability values.
+    
+    Args:
+        dict_meta (dict[str:sc.AnnData]): The dictionary of adata objects.
+
+    Returns:
+        dict[str, dict[tuple[np.ndarray, np.ndarray, list[str]]]]: The dictionary of genes and their values.
+            ex. gene_dict = {'meox1: {'TDR126': (rna_expr, atac_expr, colors),
+                                    'TDR127': (rna_expr, atac_expr, colors), ...
+                                    }
+                            'hbbe3': {'TDR126': (rna_expr, atac_expr, colors),
+                                    'TDR127': (rna_expr, atac_expr, colors), ...
+                                }
+                            }
+    """
+
+    datasets = set([key.split("_")[0] for key in dict_meta.keys()])
+    gene_dict = {}
+    for dataset in datasets:
+
+        # Get shared genes between RNA and ATAC adata objects
+        rna_ad = dict_meta[f"{dataset}_rna"]
+        atac_ad = dict_meta[f"{dataset}_atac"]
+        shared_genes = np.intersect1d(rna_ad.var_names, atac_ad.var_names)
+
+        # Append gene expression values to gene dictionary
+        for gene in shared_genes:
+            rna_expr = rna_ad[:, gene].X.toarray().flatten()
+            atac_expr = atac_ad[:, gene].X.toarray().flatten()
+            if gene not in gene_dict.keys():
+                gene_dict[gene] = {}
+            
+            # Append cell type colors to gene dictionary as well
+            celltypes = rna_ad.obs["celltype"]
+            colors = celltypes.map(define_color_dict()).to_list()  # Map colors to SEACell annnotations
+            gene_dict[gene][dataset] = (rna_expr, atac_expr, colors)
+
+    return gene_dict
+
+
 def main():
     """
     """
 
     # Get meta dictionary containing all datasets
     datasets = ['TDR126', 'TDR127', 'TDR128', 'TDR118reseq', 'TDR125reseq', 'TDR124reseq']
-    dict_meta_ad = get_datasets(datasets)
+    dict_meta = get_datasets(datasets)
 
-    # Save to pickle
-    with open('corr/data/dict_meta.pkl', 'wb') as f:
-        pickle.dump(dict_meta_ad, f)
+    # Get gene dictionary
+    gene_dict = get_gene_dict(dict_meta)
+    pickle.dump(gene_dict, open("corr/data/gene_dict.pkl", "wb"))
 
 
 if __name__ == "__main__":
