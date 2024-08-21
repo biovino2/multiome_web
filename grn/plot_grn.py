@@ -6,8 +6,8 @@ Ben Iovino  08/09/24    CZ-Biohub
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import seaborn as sns
 import streamlit as st
 
 
@@ -47,7 +47,7 @@ def st_setup(celltypes: list[str]):
 
 
 def load_data(celltype: str, timepoint: str) -> 'tuple[pd.DataFrame, np.array, np.array]':
-    """Returns counts for celltype at a timepoint, as well as row and column linkages.
+    """Returns counts for celltype at a timepoint.
 
     Args:
         celltype: The celltype to load.
@@ -55,16 +55,12 @@ def load_data(celltype: str, timepoint: str) -> 'tuple[pd.DataFrame, np.array, n
 
     Returns:
         df_counts (pd.DataFrame): The counts for the celltype at the timepoint.
-        row_linkage (np.array): The row dendrogram linkage.
-        col_linkage (np.array): The column dendrogram linkage.
     """
 
     path = 'grn/data'
     df_counts = pd.read_csv(f"{path}/{celltype}/{celltype}_{timepoint}.csv", index_col=0)
-    row_linkage = np.load(f"{path}/{celltype}/{celltype}_row_linkage.npz")['arr_0']
-    col_linkage = np.load(f"{path}/{celltype}/{celltype}_col_linkage.npz")['arr_0']
 
-    return df_counts, row_linkage, col_linkage
+    return df_counts
 
 
 def plot_grn(celltype: str, timepoint: str) -> 'px.imshow':
@@ -78,21 +74,21 @@ def plot_grn(celltype: str, timepoint: str) -> 'px.imshow':
         fig (plotly.express.imshow): The plotly figure.
     """
 
-    # Seaborn clustermap
-    vmax, vmin = 0.1, -0.1
-    df_counts, row_linkage, col_linkage = load_data(celltype, timepoint)
+    # Create heatmap directly using graph_objects
+    df_counts = load_data(celltype, timepoint)
+    fig = go.Figure(data=go.Heatmap(
+        z=df_counts.values,
+        x=df_counts.columns,
+        y=df_counts.index,
+        colorscale='balance',
+        zmin=-0.1, zmax=0.1
+    ))
 
-    # Create clustermap
-    g = sns.clustermap(df_counts, method='ward', metric='euclidean', 
-                       row_cluster=True, col_cluster=True, 
-                       xticklabels=df_counts.columns.tolist(),
-                       yticklabels=df_counts.index.tolist(), 
-                       vmax=vmax, vmin=vmin, 
-                       row_linkage=row_linkage, col_linkage=col_linkage)
-
-    # Convert seaborn plot to plotly and plot on page
-    fig = px.imshow(g.data2d,
-                    labels=dict(x='Transcription Factor', y='Gene'))
+    # Customize layout
+    fig.update_layout(
+        xaxis_title="Transcription Factor",
+        yaxis_title="Gene",
+    )
 
     return fig
 

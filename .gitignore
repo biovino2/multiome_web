@@ -3,5 +3,6 @@ ccan/data/figure.png
 ccan/data/zfin/annotations
 corr/data
 corr/__pycache__
+corr/settings.txt
 grn/data/links
 grn/settings.txt

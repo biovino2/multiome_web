@@ -5,7 +5,6 @@
 
 import os
 import celloracle as co
-import numpy as np
 import pandas as pd
 import seaborn as sns
 import sys
@@ -13,10 +12,11 @@ import sys
 sys.setrecursionlimit(10000)
 
 
-def load_links(files: 'list[str]') -> 'dict[str: co.Links]':
+def load_links(path: str, files: 'list[str]') -> 'dict[str: co.Links]':
     """Returns a dictionary of cell oracle links objects.
 
     Args:
+        path: Path to the links.
         files: List of file names to load.
 
     Returns:
@@ -27,7 +27,7 @@ def load_links(files: 'list[str]') -> 'dict[str: co.Links]':
     for dataset in files:
         if dataset.endswith(".txt"):
             continue
-        file_name = f"data/links/{dataset}_celltype_GRNs.celloracle.links"
+        file_name = f"{path}/links/{dataset}_celltype_GRNs.celloracle.links"
         dict_links[dataset] = co.load_hdf5(file_name)
 
     return dict_links
@@ -59,13 +59,14 @@ def main():
     """
     """
 
-    if not os.path.exists('data/'):
-        os.makedirs('data')
+    path = 'grn/data'
+    if not os.path.exists(path):
+        os.makedirs(path)
 
     #  Load the pruned links and get network scores + GRNs
     timepoints = ['TDR126', 'TDR127', 'TDR128', 'TDR118', 'TDR125', 'TDR124']
     
-    links = load_links(timepoints)
+    links = load_links(path, timepoints)
     merged_score, filtered_GRNs = get_dicts(links)
 
     # For each celltype, get counts for each timepoint and linkages for all timepoints
@@ -94,10 +95,9 @@ def main():
             df_counts_union[timepoint] = df_pivot
 
             # Save to celltype_timepoint to csv
-            if not os.path.exists(f'data/{ct}'):
-                os.makedirs(f'data/{ct}')
-            df_pivot.to_csv(f"data/{ct}/{ct}_{timepoint}.csv")
-
+            if not os.path.exists(f'{path}/{ct}'):
+                os.makedirs(f'{path}/{ct}')
+            df_pivot.to_csv(f"{path}/{ct}/{ct}_{timepoint}.csv")
 
         # compute the linkages from the first and the last timepoints, by augmenting the "time" components
         df_counts1 = df_counts_union["TDR126"]
@@ -127,13 +127,15 @@ def main():
                     xticklabels=2, yticklabels=2, 
                     vmax=vmax, vmin=vmin)
 
-        # extract the row/col indices
-        row_linkage = g1.dendrogram_row.linkage
-        col_linkage = g2.dendrogram_col.linkage
+        # Reorder the dataframes
+        row_order = g1.dendrogram_row.reordered_ind
+        col_order = g2.dendrogram_col.reordered_ind
+        for timepoint in timepoints:
+            df_counts_union[timepoint] = df_counts_union[timepoint].iloc[row_order, col_order]
 
-        # Save linkages to npz
-        np.savez(f'data/{ct}/{ct}_row_linkage.npz', row_linkage)
-        np.savez(f'data/{ct}/{ct}_col_linkage.npz', col_linkage)
+        # Save reordered dataframes
+        for timepoint in timepoints:
+            df_counts_union[timepoint].to_csv(f"{path}/{ct}/{ct}_{timepoint}.csv")
 
 
 if __name__ == '__main__':
