@@ -11,27 +11,6 @@ import seaborn as sns
 import streamlit as st
 
 
-def load_data(celltype: str, timepoint: str) -> 'tuple[pd.DataFrame, np.array, np.array]':
-    """Returns counts for celltype at a timepoint, as well as row and column linkages.
-
-    Args:
-        celltype: The celltype to load.
-        timepoint: The timepoint to load.
-
-    Returns:
-        df_counts (pd.DataFrame): The counts for the celltype at the timepoint.
-        row_linkage (np.array): The row dendrogram linkage.
-        col_linkage (np.array): The column dendrogram linkage.
-    """
-
-    path = 'grn/data'
-    df_counts = pd.read_csv(f"{path}/{celltype}/{celltype}_{timepoint}.csv", index_col=0)
-    row_linkage = np.load(f"{path}/{celltype}/{celltype}_row_linkage.npz")['arr_0']
-    col_linkage = np.load(f"{path}/{celltype}/{celltype}_col_linkage.npz")['arr_0']
-
-    return df_counts, row_linkage, col_linkage
-
-
 def st_setup(celltypes: list[str]):
     """Initializes streamlit session.
 
@@ -67,6 +46,27 @@ def st_setup(celltypes: list[str]):
     return celltype
 
 
+def load_data(celltype: str, timepoint: str) -> 'tuple[pd.DataFrame, np.array, np.array]':
+    """Returns counts for celltype at a timepoint, as well as row and column linkages.
+
+    Args:
+        celltype: The celltype to load.
+        timepoint: The timepoint to load.
+
+    Returns:
+        df_counts (pd.DataFrame): The counts for the celltype at the timepoint.
+        row_linkage (np.array): The row dendrogram linkage.
+        col_linkage (np.array): The column dendrogram linkage.
+    """
+
+    path = 'grn/data'
+    df_counts = pd.read_csv(f"{path}/{celltype}/{celltype}_{timepoint}.csv", index_col=0)
+    row_linkage = np.load(f"{path}/{celltype}/{celltype}_row_linkage.npz")['arr_0']
+    col_linkage = np.load(f"{path}/{celltype}/{celltype}_col_linkage.npz")['arr_0']
+
+    return df_counts, row_linkage, col_linkage
+
+
 def plot_grn(celltype: str, timepoint: str) -> 'px.imshow':
     """Returns a plotly figure of the GRN clustermap.
 
@@ -97,6 +97,50 @@ def plot_grn(celltype: str, timepoint: str) -> 'px.imshow':
     return fig
 
 
+def make_figure(celltype: str, timepoints: dict[str:str]):
+    """Returns a plotly figure containing a clustermap representing the GRN for each timepoint.
+
+    Args:
+        celltype (str): The celltype to plot.
+        timepoints (dict[str:str]): The dictionary of timepoints.
+
+    Returns:
+        fig (plotly.graph_objs.Figure): The plotly figure.
+    """
+
+    # Obtain selected timepoints
+    selected_timepoints = []
+    for i, key in enumerate(st.session_state.selectboxes):
+        st.sidebar.selectbox(
+            'Select a timepoint to plot',
+            list(timepoints.keys()),
+            key=key
+        )
+        selected_timepoints.append(st.session_state[key])
+
+    # Create figure (subplots)
+    fig = make_subplots(
+        rows=1,
+        cols=len(selected_timepoints),
+        horizontal_spacing=.1,
+        subplot_titles=[f"{tp}" for tp in selected_timepoints]
+        )
+
+    # Generate clustermap for each subplot
+    for i, timepoint in enumerate(selected_timepoints):
+        plot = plot_grn(celltype, timepoints[timepoint])
+        for trace in plot['data']:
+            fig.add_trace(trace, row=1, col=i+1)
+        fig.update_xaxes(tickfont=dict(size=12), row=1, col=i+1)
+        fig.update_yaxes(tickfont=dict(size=12), row=1, col=i+1)
+
+    # Figure layout
+    fig.update_layout(height=800, width=3000, showlegend=False)
+    fig.update_layout(coloraxis=dict(colorscale='RdBu_r'))
+
+    return fig
+
+
 def save_config() -> dict:
     """Returns a config to save plotly figure as SVG.
 
@@ -105,7 +149,7 @@ def save_config() -> dict:
     """
 
     config = {
-    'toImageButtonOptions': {
+        'toImageButtonOptions': {
         'format': 'svg', # one of png, svg, jpeg, webp
         'filename': 'grn_clustermap',
         'height': None,
@@ -130,31 +174,7 @@ def main():
               '30 hours post fertilization': 'TDR124'}
     celltypes = ['fast_muscle', 'neural_posterior', 'NMPs', 'PSM', 'somites', 'spinal_cord', 'tail_bud']
     celltype = st_setup(celltypes)
-
-    # Graph selected timepoints
-    selected_timepoints = []
-    for i, key in enumerate(st.session_state.selectboxes):
-        st.sidebar.selectbox(
-            'Select a timepoint to plot',
-            list(timepoints.keys()),
-            key=key
-        )
-        selected_timepoints.append(st.session_state[key])
-        fig = make_subplots(rows=1,
-                            cols=len(selected_timepoints),
-                            horizontal_spacing=.1,
-                            subplot_titles=[f"{tp}" for tp in selected_timepoints])
-
-    # Create a single plot containing all GRNs
-    for i, timepoint in enumerate(selected_timepoints):
-        plot = plot_grn(celltype, timepoints[timepoint])
-        for trace in plot['data']:
-            fig.add_trace(trace, row=1, col=i+1)
-        fig.update_xaxes(tickfont=dict(size=8), row=1, col=i+1)
-        fig.update_yaxes(tickfont=dict(size=8), row=1, col=i+1)
-    fig.update_layout(height=800, width=3000, showlegend=False)
-    fig.update_layout(coloraxis=dict(colorscale='RdBu_r'))
-
+    fig = make_figure(celltype, timepoints)
     st.plotly_chart(fig, config=save_config())
 
 
