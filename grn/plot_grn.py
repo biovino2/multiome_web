@@ -1,61 +1,19 @@
-"""Plot GRN cluster maps.
+"""Master script for plotting GRNs.
 
 Ben Iovino  08/09/24    CZ-Biohub
 """
 
-import numpy as np
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import streamlit as st
 
 
-def st_setup(celltypes: list[str]):
-    """Initializes streamlit session.
-
-    Args:
-        celltypes: The list of cell types.
-    """
-
-    st.set_page_config(layout="wide")
-    st.title('Time-Resolved Gene Regulatory Networks (GRNs)')
-    st.write('For each timepoint (hours post fertilization), we plot the CellOracle predicted GRNs for each cell type. \
-             The GRNs are represented as a clustermap, with the transcription factors on the x-axis and the genes on the y-axis. \
-             The color of each cell represents the strength of the interaction between the transcription factor and the gene, \
-             with red indicating activation and blue indicating repression, as predicted by CellOracle.')
-    st.write('You can select the cell type and timepoints to display using the sidebar on the left.')
-    st.sidebar.markdown('# Settings')
-
-    # Initialize drop down boxes
-    if "selectboxes" not in st.session_state:
-        st.session_state.selectboxes = [0]
-
-    # Set up buttons for adding/removing timepoints
-    with st.sidebar:
-        add, reset = st.columns([1, 1])
-        with add:
-            if st.button('Add Timepoint'):
-                st.session_state.selectboxes.append(len(st.session_state.selectboxes))
-        with reset:
-            if st.button('Reset'):
-                st.session_state.selectboxes = [0]
-
-    # Get celltype
-    celltype = st.sidebar.selectbox(
-        'Select a cell type to plot',
-        celltypes
-    )
-
-    return celltype
-
-
-def load_data(celltype: str, timepoint: str) -> 'tuple[pd.DataFrame, np.array, np.array]':
+def load_data(celltype: str, timepoint: str) -> 'pd.DataFrame':
     """Returns counts for celltype at a timepoint.
 
     Args:
-        celltype: The celltype to load.
-        timepoint: The timepoint to load.
+        celltype (str): The celltype to load.
+        timepoint (str): The timepoint to load.
 
     Returns:
         df_counts (pd.DataFrame): The counts for the celltype at the timepoint.
@@ -63,20 +21,20 @@ def load_data(celltype: str, timepoint: str) -> 'tuple[pd.DataFrame, np.array, n
 
     path = 'grn/data'
     df_counts = pd.read_csv(f"{path}/{celltype}/{celltype}_{timepoint}.csv", index_col=0)
-    df_counts = df_counts.transpose()
+    df_counts = df_counts.transpose()  # genes on y-axis, TFs on x-axis
 
     return df_counts
 
 
-def plot_grn(celltype: str, timepoint: str) -> 'px.imshow':
-    """Returns a plotly figure of the GRN clustermap.
+def plot_grn(celltype: str, timepoint: str) -> 'go.Heatmap':
+    """Returns a plotly Heatmap of the GRN.
 
     Args:
         celltype (str): The celltype to plot.
         timepoint (str): The timepoint to plot.
 
     Returns:
-        fig (plotly.express.imshow): The plotly figure.
+        fig (go.Heatmap): The plotly figure.
     """
 
     # Create heatmap directly using graph_objects
@@ -92,61 +50,17 @@ def plot_grn(celltype: str, timepoint: str) -> 'px.imshow':
     return fig
 
 
-def make_figure(celltype: str, timepoints: dict[str:str]):
-    """Returns a plotly figure containing a clustermap representing the GRN for each timepoint.
-
-    Args:
-        celltype (str): The celltype to plot.
-        timepoints (dict[str:str]): The dictionary of timepoints.
-
-    Returns:
-        fig (plotly.graph_objs.Figure): The plotly figure.
-    """
-
-    # Obtain selected timepoints
-    selected_timepoints = []
-    for i, key in enumerate(st.session_state.selectboxes):
-        st.sidebar.selectbox(
-            'Select a timepoint to plot',
-            list(timepoints.keys()),
-            key=key
-        )
-        selected_timepoints.append(st.session_state[key])
-
-    # Create figure (subplots)
-    fig = make_subplots(
-        rows=1,
-        cols=len(selected_timepoints),
-        subplot_titles=[f"{tp}" for tp in selected_timepoints],
-        shared_yaxes=True,
-        shared_xaxes=True
-        )
-
-    # Generate clustermap for each subplot
-    for i, timepoint in enumerate(selected_timepoints):
-        plot = plot_grn(celltype, timepoints[timepoint])
-        fig.add_trace(plot, row=1, col=i+1)
-        fig.update_xaxes(tickfont=dict(size=12), row=1, col=i+1, matches='x')
-        fig.update_yaxes(tickfont=dict(size=12), row=1, col=i+1, matches='y')
-
-    # Figure layout
-    fig.update_layout(height=700, width=2000, showlegend=False)
-    fig.update_layout(coloraxis=dict(colorscale='RdBu_r'))
-
-    return fig
-
-
 def save_config() -> dict:
     """Returns a config to save plotly figure as SVG.
 
     Returns:
-        config (dict): The configuration.
+        config (dict): The save configuration.
     """
 
     config = {
         'toImageButtonOptions': {
         'format': 'svg', # one of png, svg, jpeg, webp
-        'filename': 'grn_clustermap',
+        'filename': 'grn_heatmap',
         'height': None,
         'width': None,
         'scale': 1 # Multiply title/legend/axis/canvas sizes by this factor
@@ -158,19 +72,14 @@ def save_config() -> dict:
 
 
 def main():
-    """
+    """Runs selected page.
     """
     
-    timepoints = {'0 hours post fertilization': 'TDR126',
-              '5 hours post fertilization': 'TDR127',
-              '10 hours post fertilization': 'TDR128',
-              '15 hours post fertilization': 'TDR118',
-              '20 hours post fertilization': 'TDR125',
-              '30 hours post fertilization': 'TDR124'}
-    celltypes = ['fast_muscle', 'neural_posterior', 'NMPs', 'PSM', 'somites', 'spinal_cord', 'tail_bud']
-    celltype = st_setup(celltypes)
-    fig = make_figure(celltype, timepoints)
-    st.plotly_chart(fig, config=save_config())
+    pg = st.navigation([
+        st.Page('plot_tp.py', title='Time Points'),
+        st.Page('plot_ct.py', title='Cell Types'),
+        ])
+    pg.run()
 
 
 if __name__ == '__main__':
