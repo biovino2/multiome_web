@@ -94,11 +94,6 @@ def main():
                                                             columns=all_sources).fillna(0)
             df_counts_union[timepoint] = df_pivot
 
-            # Save to celltype_timepoint to csv
-            if not os.path.exists(f'{path}/{ct}'):
-                os.makedirs(f'{path}/{ct}')
-            df_pivot.to_csv(f"{path}/{ct}/{ct}_{timepoint}.csv")
-
         # compute the linkages from the first and the last timepoints, by augmenting the "time" components
         df_counts1 = df_counts_union["TDR126"]
         df_counts2 = df_counts_union["TDR127"]
@@ -134,6 +129,8 @@ def main():
             df_counts_union[timepoint] = df_counts_union[timepoint].iloc[row_order, col_order]
 
         # Save reordered dataframes
+        if not os.path.exists(f'{path}/{ct}'):
+                os.makedirs(f'{path}/{ct}')
         for timepoint in timepoints:
             df_counts_union[timepoint].to_csv(f"{path}/{ct}/{ct}_{timepoint}.csv")
 

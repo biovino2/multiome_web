@@ -20,7 +20,11 @@ def st_setup(celltypes: list[str]):
 
     st.set_page_config(layout="wide")
     st.title('Time-Resolved Gene Regulatory Networks (GRNs)')
-    st.write('For each timepoint, we plot the CellOracle GRNs for each cell type.')
+    st.write('For each timepoint (hours post fertilization), we plot the CellOracle predicted GRNs for each cell type. \
+             The GRNs are represented as a clustermap, with the transcription factors on the x-axis and the genes on the y-axis. \
+             The color of each cell represents the strength of the interaction between the transcription factor and the gene, \
+             with red indicating activation and blue indicating repression, as predicted by CellOracle.')
+    st.write('You can select the cell type and timepoints to display using the sidebar on the left.')
     st.sidebar.markdown('# Settings')
 
     # Initialize drop down boxes
@@ -59,6 +63,7 @@ def load_data(celltype: str, timepoint: str) -> 'tuple[pd.DataFrame, np.array, n
 
     path = 'grn/data'
     df_counts = pd.read_csv(f"{path}/{celltype}/{celltype}_{timepoint}.csv", index_col=0)
+    df_counts = df_counts.transpose()
 
     return df_counts
 
@@ -76,18 +81,12 @@ def plot_grn(celltype: str, timepoint: str) -> 'px.imshow':
 
     # Create heatmap directly using graph_objects
     df_counts = load_data(celltype, timepoint)
-    fig = go.Figure(data=go.Heatmap(
+    fig = go.Heatmap(
         z=df_counts.values,
         x=df_counts.columns,
         y=df_counts.index,
         colorscale='balance',
         zmin=-0.1, zmax=0.1
-    ))
-
-    # Customize layout
-    fig.update_layout(
-        xaxis_title="Transcription Factor",
-        yaxis_title="Gene",
     )
 
     return fig
@@ -118,20 +117,20 @@ def make_figure(celltype: str, timepoints: dict[str:str]):
     fig = make_subplots(
         rows=1,
         cols=len(selected_timepoints),
-        horizontal_spacing=.1,
-        subplot_titles=[f"{tp}" for tp in selected_timepoints]
+        subplot_titles=[f"{tp}" for tp in selected_timepoints],
+        shared_yaxes=True,
+        shared_xaxes=True
         )
 
     # Generate clustermap for each subplot
     for i, timepoint in enumerate(selected_timepoints):
         plot = plot_grn(celltype, timepoints[timepoint])
-        for trace in plot['data']:
-            fig.add_trace(trace, row=1, col=i+1)
-        fig.update_xaxes(tickfont=dict(size=12), row=1, col=i+1)
-        fig.update_yaxes(tickfont=dict(size=12), row=1, col=i+1)
+        fig.add_trace(plot, row=1, col=i+1)
+        fig.update_xaxes(tickfont=dict(size=12), row=1, col=i+1, matches='x')
+        fig.update_yaxes(tickfont=dict(size=12), row=1, col=i+1, matches='y')
 
     # Figure layout
-    fig.update_layout(height=800, width=3000, showlegend=False)
+    fig.update_layout(height=700, width=2000, showlegend=False)
     fig.update_layout(coloraxis=dict(colorscale='RdBu_r'))
 
     return fig
