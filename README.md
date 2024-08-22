@@ -15,15 +15,8 @@ Then install the following requirements (conda recommended):
 - figeno==1.4.5
 - scanpy==1.10.2
 - gtfparse==2.5.0
-
-## Running a streamlit instance
-To run streamlit from HPC, you will run the following commands while also creating a SHH tunnel. To do so, run:
-
-```
-ssh -L <port>:localhost:<port> username@hpc_address
-```
-
-And then connect via browser. Streamlit defaults to port 8501, but you can set the port with the `-p` argument.
+- plotly==5.23.0
+- polars==0.20.31
 
 ### CCAN plots
 Run the following command to run a streamlit instance that shows CCAN and gene track plots with your gene of choice:
@@ -38,3 +31,19 @@ Run the following command to run a streamlit instance that shows correlation sca
 ```
 streamlit run corr/plot_corr.py
 ```
+
+### GRN plots
+Run the following command to run a streamlit instance that shows CellOracle GRNs as heatmaps for cell types and time points:
+
+```
+streamlit run grn/plot_grn.py
+```
+
+## Viewing a streamlit instance
+You can connect to the instance via the URL streamlit gives you. If you are running from HPC, you must create a SSH tunnel via:
+
+```
+ssh -L <port>:localhost:<port> username@hpc_address
+```
+
+And then connect via browser. Streamlit defaults to port 8501, but you can set the port with the `-p` argument.

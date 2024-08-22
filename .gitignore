@@ -4,5 +4,6 @@ ccan/data/zfin/annotations
 corr/data
 corr/__pycache__
 corr/settings.txt
+grn/__pycache__
 grn/data/links
 grn/settings.txt
