@@ -32,6 +32,38 @@ def parse_gtf(path: str, filename: str) -> 'list[str]':
     return df['gene_name'].unique().to_list()
 
 
+def parse_atac(path: str):
+    """Combines ATAC data into one file (path/access.csv).
+
+    Args:
+        path (str): The path to the ATAC files.
+    """
+
+    timepoints = ['TDR126', 'TDR127', 'TDR128', 'TDR118', 'TDR125', 'TDR124']
+
+    # Read ATAC data for each timepoint
+    rows: 'list[tuple[str, str, int, int]]' = []
+    for file in timepoints:
+        df = pl.read_csv(f'{path}/{file}.csv')
+    
+        # Extract gene, start, and end
+        for row in df.iter_rows():
+            gene = row[1]
+            start = int(row[0].split('_')[1])
+            end = int(row[0].split('_')[2])
+            rows.append((gene, file, start, end))
+
+    # Add rows to dataframe
+    df = pl.DataFrame({
+    'gene_name': pl.Series(values=[row[0] for row in rows], dtype=pl.String),
+    'sample': pl.Series(values=[row[1] for row in rows], dtype=pl.String),
+    'start': pl.Series(values=[row[2] for row in rows], dtype=pl.Int32),
+    'end': pl.Series(values=[row[3] for row in rows], dtype=pl.Int32)
+    })
+
+    df.write_csv(f'{path}/access.csv')
+
+
 def get_zfin_genes(path: str, gene_names: 'list[str]'):
     """Downloads ZFIN names and creates a mapping between gene names and ZFIN names.
 
@@ -122,17 +154,23 @@ def parse_html(path: str):
 
 
 def main():
-    """Two parts: reads GTF file and downloads ZFIN annotations.
+    """Three parts:
+        1) Combines ATAC data into one file
+        2) Parses GTF file for exons
+        3) Downloads and parses ZFIN gene information
+
+    Comment out any parts that you don't need (particularly part 3, lots of downloads).
     """
 
     path = 'ccan/data'
     if not os.path.exists(path):
         os.mkdir(path)
 
-    gene_names = parse_gtf(path, 'GRCz11.gtf.gz')
-    get_zfin_genes(path, gene_names)
-    get_zfin_annotations(path)
-    parse_html(path)
+    parse_atac(path)  # part 1
+    gene_names = parse_gtf(path, 'GRCz11.gtf.gz')  # part 2
+    get_zfin_genes(path, gene_names)  # part 3
+    #get_zfin_annotations(path)
+    #parse_html(path)
 
 
 if __name__ == "__main__":

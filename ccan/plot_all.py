@@ -8,6 +8,7 @@ from plot_track import get_gene_info, define_config
 from figeno import figeno_make
 import streamlit as st
 import polars as pl
+from plot_both import combine_plot
 
 
 def load_zfin_info() -> 'tuple[dict, dict]':
@@ -84,8 +85,6 @@ def main():
     df = pl.read_csv('ccan/data/GRCz11.csv')
     chrom, min, max, strand = get_gene_info(df, option)
 
-
-
     # Create and plot ccan plot
     fig, ccan_start = plot_ccans_genomic_loci(df_list,
                                 gene_name=option,
@@ -101,7 +100,10 @@ def main():
         st.markdown(f"[ZFIN](https://zfin.org/{mapping[option]}): {info[option]}")
     except KeyError:
         st.write("No ZFIN information available.")
+    st.plotly_chart(combine_plot(option))
+    st.markdown('## Cis Co-Accessibility')
     st.pyplot(fig)
+    st.markdown('## Gene Track')
     st.image("ccan/data/figure.png")
 
 
