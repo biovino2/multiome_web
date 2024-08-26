@@ -22,8 +22,10 @@ def parse_gtf(path: str, filename: str) -> 'list[str]':
         list[str]: A list of all genes in GTF file.
     """
 
-    df = read_gtf(f'{path}/{filename}', usecols=['seqname', 'start', 'end', 'strand', 'gene_name'])
+    df = read_gtf(f'{path}/{filename}', usecols=['gene_name', 'seqname', 'start', 'end', 'strand', 'feature'])
     df = df.filter(pl.col('seqname') != 'MT')
+    df = df.filter(pl.col('feature') == 'exon')
+    df = df.drop('feature')
     df.write_csv(f'{path}/{filename.split(".")[0]}.csv')
 
     # Return gene names
@@ -120,7 +122,7 @@ def parse_html(path: str):
 
 
 def main():
-    """
+    """Two parts: reads GTF file and downloads ZFIN annotations.
     """
 
     path = 'ccan/data'

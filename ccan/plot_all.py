@@ -92,14 +92,15 @@ def main():
                                 direction=strand,
                                 timepoints=list(timepoints.keys()),
                                 colordict=color_dict)
-
-    st.write(min, ccan_start)
     config = define_config(chrom, min, max, option)
     st.markdown(f'# {option}')
     figeno_make(config)
 
     # Display
-    st.markdown(f"[ZFIN](https://zfin.org/{mapping[option]}): {info[option]}")
+    try:
+        st.markdown(f"[ZFIN](https://zfin.org/{mapping[option]}): {info[option]}")
+    except KeyError:
+        st.write("No ZFIN information available.")
     st.pyplot(fig)
     st.image("ccan/data/figure.png")
 
