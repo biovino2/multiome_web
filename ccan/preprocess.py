@@ -169,8 +169,8 @@ def main():
     parse_atac(path)  # part 1
     gene_names = parse_gtf(path, 'GRCz11.gtf.gz')  # part 2
     get_zfin_genes(path, gene_names)  # part 3
-    #get_zfin_annotations(path)
-    #parse_html(path)
+    get_zfin_annotations(path)
+    parse_html(path)
 
 
 if __name__ == "__main__":
