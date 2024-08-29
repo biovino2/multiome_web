@@ -19,7 +19,7 @@ def get_data(option: str) -> 'tuple[pl.DataFrame, pl.DataFrame]':
 
     genes = pl.read_csv('ccan/data/GRCz11.csv')
     access = pl.read_csv('ccan/data/access.csv')
-    gene_data = genes.filter(pl.col('gene_name') == option).sort('end')
+    gene_data = genes.filter(pl.col('gene_name') == option)
     atac_data = access.filter(pl.col('gene_name') == option)
 
     return gene_data, atac_data
@@ -98,28 +98,38 @@ def plot_gene(fig: go.Figure, gene_data: pl.DataFrame, start: int, end: int) -> 
     ))
 
     # Draw rectangles representing exons
-    exon_color = "dodgerblue"
     for exon_start, exon_end in exon_positions:
-        fig.add_trace(go.Scatter(
+        fig.add_shape(  # Blue rectangle for exon
+            type="rect",
+            x0=exon_start,
+            y0=0.11,
+            x1=exon_end,
+            y1=0.09,
+            line=dict(color="dodgerblue"),
+            fillcolor="dodgerblue"
+        )
+        fig.add_trace(go.Scatter(  # Exon text
             x=[exon_start, exon_end, exon_end, exon_start, exon_start],
-            y=[0.075, 0.075, 0.125, 0.125, 0.075],
-            fill="toself",
-            fillcolor=exon_color,
+            y=[0.11, 0.11, 0.09, 0.09, 0.11],
+            fill='toself',
             mode="lines",
-            line=dict(color=exon_color, width=0.5),
+            name='',
+            text=f"<b>Start:</b> {exon_start}<br><b>End:</b> {exon_end}",
             showlegend=False
         ))
 
-    # Draw arrow beneath plot showing direction of transcription
+    # Draw arrow showing direction of transcription
     arrow_length = 0.025 * (end-start)
     if gene_data['strand'][0] == '+':
         arrow = genomic_end + arrow_length
+        ax = genomic_end
     else:
         arrow = genomic_start - arrow_length
+        ax = genomic_start
     fig.add_annotation(
             x=arrow,
             y=0.1,
-            ax=genomic_end-25,
+            ax=ax,
             ay=0.1,
             xref='x',
             yref='y',
@@ -148,6 +158,12 @@ def plot_atac(fig: go.Figure, atac_data: pl.DataFrame) -> go.Figure:
 
     heights = {'TDR126': 0.20, 'TDR127': 0.225, 'TDR128': 0.25,
                 'TDR118': 0.275, 'TDR125': 0.30, 'TDR124': 0.325}
+    timepoints = {'TDR126': '0 hours post fertilization',
+                    'TDR127': '5 hours post fertilization',
+                    'TDR128': '10 hours post fertilization',
+                    'TDR118': '15 hours post fertilization',
+                    'TDR125': '20 hours post fertilization',
+                    'TDR124': '30 hours post fertilization'}
     colors = {'TDR126': '#440154', 'TDR127': '#414487', 'TDR128': '#2A788E',
                'TDR118': '#22A884', 'TDR125': '#7AD151', 'TDR124': '#FDE725'}
 
@@ -156,11 +172,25 @@ def plot_atac(fig: go.Figure, atac_data: pl.DataFrame) -> go.Figure:
         atac_start = row[2]
         atac_end = row[3]
         height = heights[row[1]]
+        fig.add_shape(
+            type="rect",
+            x0=atac_start,
+            y0=height-0.01,
+            x1=atac_end,
+            y1=height+0.01,
+            line=dict(color=colors[row[1]]),
+            fillcolor=colors[row[1]],
+        )
         fig.add_trace(go.Scatter(
-            x=[atac_start, atac_end],
-            y=[height, height],
+            x=[atac_start, atac_end, atac_end, atac_start, atac_start],
+            y=[height+0.01, height+0.01, height-0.01, height-0.01, height+0.01],
+            fill='toself',
             mode="lines",
-            line=dict(color=colors[row[1]], width=10),
+            name='',
+            text=
+            f'<b>Sample:</b> {timepoints[row[1]]}<br>'
+            f'<b>Start:</b> {atac_start}<br>'
+            f'<b>End:</b> {atac_end}<br>',
             showlegend=False
         ))
 
