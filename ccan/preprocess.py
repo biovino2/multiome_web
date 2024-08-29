@@ -11,6 +11,52 @@ import re
 from urllib.request import urlretrieve
 
 
+def merge_exons(df: 'pl.DataFrame') -> 'pl.DataFrame':
+    """Returns a DataFrame with no overlapping exons for each gene
+
+    Args:
+        df (pl.DataFrame): The DataFrame with all exons.
+
+    Returns:
+        pl.DataFrame: A DataFrame with no overlapping exons.
+    """
+
+    new_df = []
+    genes = df['gene_name'].unique().to_list()
+    for gene in genes:  # Sort exons for each gene
+        gene_df = df.filter(pl.col('gene_name') == gene)
+        
+        # Merge overlapping exons by sorting and iterating
+        rows = []
+        gene_df = gene_df.sort('start')
+        for row in gene_df.iter_rows():
+            if not rows:  # initialize list of exons
+                rows.append(list(row))
+                continue
+
+            # Merge if current start < previous end
+            # If current end > previous end, update previous end
+            if row[2] < rows[-1][3]:
+                if rows[-1][3] < row[3]:
+                    rows[-1][3] = row[3]
+
+            # Otherwise, we have a new exon
+            else:
+                rows.append(list(row))
+        for row in rows:
+            new_df.append(row)
+
+    # Create new DataFrame containing all genes
+    return pl.DataFrame({
+        'gene_name': pl.Series(values=[row[0] for row in new_df], dtype=pl.String),
+        'seqname': pl.Series(values=[row[1] for row in new_df], dtype=pl.String),
+        'start': pl.Series(values=[row[2] for row in new_df], dtype=pl.Int32),
+        'end': pl.Series(values=[row[3] for row in new_df], dtype=pl.Int32),
+        'strand': pl.Series(values=[row[4] for row in new_df], dtype=pl.String),
+        'gene_id': pl.Series(values=[row[5] for row in new_df], dtype=pl.String)
+    })
+
+
 def parse_gtf(path: str, filename: str) -> 'list[str]':
     """Parses GTF file for relevant information.
 
@@ -22,10 +68,12 @@ def parse_gtf(path: str, filename: str) -> 'list[str]':
         list[str]: A list of all genes in GTF file.
     """
 
-    df = read_gtf(f'{path}/{filename}', usecols=['gene_name', 'seqname', 'start', 'end', 'strand', 'feature'])
-    df = df.filter(pl.col('seqname') != 'MT')
-    df = df.filter(pl.col('feature') == 'exon')
+    df = read_gtf(f'{path}/{filename}', usecols=['gene_name', 'seqname', 'start', 'end',
+                                                  'strand', 'feature', 'gene_id'])
+    df = df.filter(pl.col('seqname') != 'MT')  # Remove mitochondrial genes
+    df = df.filter(pl.col('feature') == 'exon')  # Only keep exons
     df = df.drop('feature')
+    df = merge_exons(df)
     df.write_csv(f'{path}/{filename.split(".")[0]}.csv')
 
     # Return gene names
