@@ -42,6 +42,7 @@ def plot_genomic_region(start: int, end: int) -> go.Figure:
         x=[start, end],
         y=[0, 0],
         mode="lines",
+        hoverinfo='none',
         line=dict(color="black", width=2),
         showlegend=False
     ))  
@@ -55,6 +56,8 @@ def plot_genomic_region(start: int, end: int) -> go.Figure:
             x=[tick, tick],
             y=[-tick_length / 2, tick_length / 2],  # Adjusted for longer ticks
             mode="lines",
+            hoverinfo='text',
+            text=f"{tick // 1000} kbp",
             line=dict(color="black", width=tick_width),  # Thicker ticks
             showlegend=False
         ))
@@ -93,6 +96,7 @@ def plot_gene(fig: go.Figure, gene_data: pl.DataFrame, start: int, end: int) -> 
         x=[genomic_start, genomic_end],
         y=[0.1, 0.1],
         mode="lines",
+        hoverinfo='none',
         line=dict(color="gray", width=2),
         showlegend=False
     ))
@@ -113,24 +117,23 @@ def plot_gene(fig: go.Figure, gene_data: pl.DataFrame, start: int, end: int) -> 
             y=[0.11, 0.11, 0.09, 0.09, 0.11],
             fill='toself',
             mode="lines",
-            name='',
+            hoverinfo='text',
             text=f"<b>Start:</b> {exon_start}<br><b>End:</b> {exon_end}",
             showlegend=False
         ))
 
     # Draw arrow showing direction of transcription
-    arrow_length = 0.025 * (end-start)
     if gene_data['strand'][0] == '+':
-        arrow = genomic_end + arrow_length
-        ax = genomic_end
-    else:
-        arrow = genomic_start - arrow_length
+        arrow = genomic_end
         ax = genomic_start
+    else:
+        arrow = genomic_start
+        ax = genomic_end
     fig.add_annotation(
             x=arrow,
-            y=0.1,
+            y=0.07,
             ax=ax,
-            ay=0.1,
+            ay=0.07,
             xref='x',
             yref='y',
             axref='x',
@@ -139,7 +142,7 @@ def plot_gene(fig: go.Figure, gene_data: pl.DataFrame, start: int, end: int) -> 
             arrowhead=3,
             arrowsize=1,
             arrowwidth=2,
-            arrowcolor="gray"
+            arrowcolor="lightgray"
         )
     
     return fig
@@ -186,7 +189,7 @@ def plot_atac(fig: go.Figure, atac_data: pl.DataFrame) -> go.Figure:
             y=[height+0.01, height+0.01, height-0.01, height-0.01, height+0.01],
             fill='toself',
             mode="lines",
-            name='',
+            hoverinfo='text',
             text=
             f'<b>Sample:</b> {timepoints[row[1]]}<br>'
             f'<b>Start:</b> {atac_start}<br>'
@@ -232,4 +235,4 @@ def combined_plot(option: str) -> go.Figure:
         yaxis=dict(showgrid=False)      # Hide gridlines
     )
 
-    return fig
+    return fig 

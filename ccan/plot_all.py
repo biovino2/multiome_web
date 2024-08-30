@@ -1,11 +1,8 @@
-"""Master script for plotting all figures on one page.
+"""Master script for setting up streamlit session and plotting plotly figure.
 
 Ben Iovino  08/06/24    CZ-Biohub
 """
 
-from plot_ccan import load_dfs, plot_ccans_genomic_loci, get_color_dict, get_gene_names
-from plot_track import get_gene_info, define_config
-from figeno import figeno_make
 import streamlit as st
 import polars as pl
 from plot_both import combined_plot
@@ -51,15 +48,20 @@ def st_setup(gene_names: list[str]):
 
     st.set_page_config(layout="wide")
     st.title('Cis Co-Accessibility and Gene Track Plots')
-    st.write('For each gene, we plot the cis co-accessible peaks at different timepoints, as well as the gene track.\
+    st.write("For each gene, we plot the cis co-accessible peaks at different timepoints, as well as the gene track.\
              The cis co-accessible peaks are represented along the chromosome on the x-axis, with the timepoints \
-             stacked from earliest to latest on the y-axis. The gene track (made with figeno) shows the gene body \
-             where the blue regions represent the exons and the blue arrow represents the direction of transcription.')
-    st.write("We also provide a link to the ZFIN page for each gene, as well as ZFIN's annotation of the gene, if available.")
+             stacked from earliest to latest on the y-axis. The gene track shows the gene body where the blue regions \
+             represent the exons and the arrow beneath represents the direction of transcription. \
+            We also provide a link to the ZFIN page for each gene, as well as ZFIN's annotation of the gene, if available.")
     st.sidebar.markdown('# Settings')
+
+    # Initialize drop down box
+    gene_names = list(set((gene_names)))  # .unique() from polars messes up select box, set instead
+    default = gene_names.index('myf5')
     option = st.sidebar.selectbox(
         'Select a gene to plot',
-        gene_names
+        gene_names,
+        index=default
     )
     
     return option
@@ -69,13 +71,8 @@ def main():
     """
     """
 
-    # Define the timepoints and load data in order
-    timepoints = {"0 hours post fertilization ": 'TDR126', "5 hours post fertilization": 'TDR127',
-                "10 hours post fertilization": 'TDR128', "15 hours post fertilization": 'TDR118',
-                "20 hours post fertilization": 'TDR125', "30 hours post fertlization": 'TDR124'}
-    df_list = load_dfs('ccan/data', list(timepoints.values()))
-    color_dict = get_color_dict(timepoints)
-    gene_names = get_gene_names(df_list)
+    df = pl.read_csv('ccan/data/access.csv')
+    gene_names = [gene[0] for gene in df.select('gene_name').rows()]
     mapping, info = load_zfin_info()
 
     # Set up streamlit, get input
@@ -83,31 +80,17 @@ def main():
 
     # Get gene info and plot gene track
     df = pl.read_csv('ccan/data/GRCz11.csv')
-    chrom, min, max, strand = get_gene_info(df, option)
-
-    # Create and plot ccan plot
-    fig, ccan_start = plot_ccans_genomic_loci(df_list,
-                                gene_name=option,
-                                direction=strand,
-                                timepoints=list(timepoints.keys()),
-                                colordict=color_dict)
-    config = define_config(chrom, min, max, option)
+    chrom = df.filter(pl.col('gene_name') == 'myf5')['seqname'][0]
     st.markdown(f'## {option} (chr{chrom})')
-    figeno_make(config)
 
     # Display
     try:
-        st.markdown(f"[ZFIN](https://zfin.org/{mapping[option]}): {info[option]}")
+        st.markdown(f"[(ZFIN) {mapping[option]}](https://zfin.org/{mapping[option]}): {info[option]}")
     except KeyError:
         st.write("No ZFIN information available.")
     st.write('The plot below is an explorable figure. You can zoom in and out, pan, and hover over the data points to see more information.')
-    st.plotly_chart(combined_plot(option))
-    st.markdown('### Cis Co-Accessibility')
-    st.write('The plot below shows only the co-accessible peaks for the gene of interest.')
-    st.pyplot(fig)
-    st.markdown('### Gene Track')
-    st.write('The plot below shows the gene track for the gene of interest.')
-    st.image("ccan/data/figure.png")
+    fig  = combined_plot(option)
+    st.plotly_chart(fig)
 
 
 if __name__ == "__main__":
