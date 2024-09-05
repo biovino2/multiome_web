@@ -85,12 +85,12 @@ def plot_genes(gene: str, gene_dict: 'dict[str:sc.AnnData]') -> plt.Figure:
         plt.Figure: The figure object.
     """
 
-    timepoints = {'TDR126': '0 hours post fertilization',
-                    'TDR127': '5 hours post fertilization',
-                    'TDR128': '10 hours post fertilization',
-                    'TDR118': '15 hours post fertilization',
-                    'TDR125': '20 hours post fertilization',
-                    'TDR124': '30 hours post fertilization'}
+    timepoints = {'TDR126': '10 hours post fertilization',
+                    'TDR127': '12 hours post fertilization',
+                    'TDR128': '14 hours post fertilization',
+                    'TDR118': '16 hours post fertilization',
+                    'TDR125': '19 hours post fertilization',
+                    'TDR124': '24 hours post fertilization'}
     fig = make_subplots(rows=2, cols=3, subplot_titles=list(timepoints.values()))
 
     # Loop over all timepoints
@@ -107,7 +107,7 @@ def plot_genes(gene: str, gene_dict: 'dict[str:sc.AnnData]') -> plt.Figure:
         if np.all(expr_rna == expr_rna[0]) or np.all(expr_atac== expr_atac[0]):
             mi_scores.append(np.nan)
         else:
-            mi_scores.append(nmis(expr_rna, expr_atac))
+            mi_scores.append(nmis(expr_rna, expr_atac, average_method='max'))
 
         # Map colors to cell types
         color_dict = define_color_dict()
@@ -143,7 +143,7 @@ def plot_genes(gene: str, gene_dict: 'dict[str:sc.AnnData]') -> plt.Figure:
         annotation.font.size = 12
 
     # Update axes labels and titles
-    for i, score in enumerate(mi_scores):
+    for i in range (0, len(mi_scores)):
         fig.update_xaxes(title='ATAC', row=i//3+1, col=i%3+1, title_font=dict(size=12), range=[0, atac_max])
         fig.update_yaxes(title='RNA', row=i//3+1, col=i%3+1, title_font=dict(size=12), range=[0, rna_max])
 

@@ -94,12 +94,12 @@ def make_figure(celltype: str, timepoints: dict[str:str]):
     return fig
 
 # Main
-timepoints = {'0 hours post fertilization': 'TDR126',
-              '5 hours post fertilization': 'TDR127',
-              '10 hours post fertilization': 'TDR128',
-              '15 hours post fertilization': 'TDR118',
-              '20 hours post fertilization': 'TDR125',
-              '30 hours post fertilization': 'TDR124'}
+timepoints = {'10 hours post fertilization': 'TDR126',
+              '12 hours post fertilization': 'TDR127',
+              '14 hours post fertilization': 'TDR128',
+              '16 hours post fertilization': 'TDR118',
+              '19 hours post fertilization': 'TDR125',
+              '24 hours post fertilization': 'TDR124'}
 celltypes = ['fast_muscle', 'neural_posterior', 'NMPs', 'PSM', 'somites', 'spinal_cord', 'tail_bud']
 celltype = st_setup(celltypes)
 fig = make_figure(celltype, timepoints)

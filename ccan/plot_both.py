@@ -161,12 +161,12 @@ def plot_atac(fig: go.Figure, atac_data: pl.DataFrame) -> go.Figure:
 
     heights = {'TDR126': 0.20, 'TDR127': 0.225, 'TDR128': 0.25,
                 'TDR118': 0.275, 'TDR125': 0.30, 'TDR124': 0.325}
-    timepoints = {'TDR126': '0 hours post fertilization',
-                    'TDR127': '5 hours post fertilization',
-                    'TDR128': '10 hours post fertilization',
-                    'TDR118': '15 hours post fertilization',
-                    'TDR125': '20 hours post fertilization',
-                    'TDR124': '30 hours post fertilization'}
+    timepoints = {'TDR126': '10 hours post fertilization',
+                    'TDR127': '12 hours post fertilization',
+                    'TDR128': '14 hours post fertilization',
+                    'TDR118': '16 hours post fertilization',
+                    'TDR125': '19 hours post fertilization',
+                    'TDR124': '24 hours post fertilization'}
     colors = {'TDR126': '#440154', 'TDR127': '#414487', 'TDR128': '#2A788E',
                'TDR118': '#22A884', 'TDR125': '#7AD151', 'TDR124': '#FDE725'}
 
