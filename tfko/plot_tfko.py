@@ -50,6 +50,107 @@ def average_metacells(adata: ad.AnnData, knockout='WT') -> 'tuple[np.ndarray, np
     return X_metacell, V_metacell
 
 
+def plot_single_cells(cell_colors: 'dict[str, str]', umap_data: pd.DataFrame) -> go.Figure:
+    """Returns a scatter plot containing single cells mapped in UMAP space.
+
+    Args:
+        cell_colors (dict): The color codes for cell types.
+        umap_dat (pd.DataFrame): The df containing UMAP coordinates, SEACell, and cell type info.
+
+    Returns:
+        go.Figure: A plotly figure.
+    """
+
+    fig = go.Figure()
+    for cell_type, color in cell_colors.items():
+        filtered_data = umap_data[umap_data['celltype'] == cell_type]
+        fig.add_trace(go.Scatter(
+            x=filtered_data[0],
+            y=filtered_data[1],
+            mode='markers',
+            name=cell_type,
+            marker=dict(color=color, size=6, opacity=0.7),
+            showlegend=False
+        ))
+
+    return fig
+
+
+def plot_meta_cells(fig: go.Figure, cell_colors: 'dict[str, str]', umap_data: pd.DataFrame) -> go.Figure:
+    """Returns a scatter plot containing meta cells mapped in UMAP space.
+
+    Args:
+        fig (go.Figure): The plotly figure object
+        cell_colors (dict): The color codes for cell types.
+        umap_dat (pd.DataFrame): The df containing UMAP coordinates, SEACell, and cell type info.
+
+    Returns:
+        go.Figure: A plotly figure.
+    """
+
+    # Prepare metacell data
+    most_prevalent = umap_data.groupby('SEACell')['celltype'].agg(lambda x: x.value_counts().index[0])
+    celltypes = umap_data['celltype']
+    umap_data = umap_data.drop(['celltype'], axis=1)
+    mcs = umap_data.groupby('SEACell').mean().reset_index()
+    mcs['celltype'] = most_prevalent.values
+    umap_data['celltype'] = celltypes
+
+    # Plot metacells
+    for cell_type, color in cell_colors.items():
+        filtered_mcs = mcs[mcs['celltype'] == cell_type]
+        fig.add_trace(go.Scatter(
+            x=filtered_mcs[0],
+            y=filtered_mcs[1],
+            mode='markers',
+            name=cell_type,
+            marker=dict(color=color, size=10, line=dict(color='black', width=1.25)),
+            showlegend=False
+        ))
+
+    return fig
+
+
+def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarray) -> go.Figure:
+    """Returns a scatter plot containing arrows representing the transition probabilities of
+    metacells in UMAP space.
+
+    Args:
+        fig (go.Figure): The plotly figure object.
+        X_metacell (np.ndarray): The average UMAP position of the metacells.
+        V_metacell (np.ndarray): The average transition vector of the metacells.
+
+    Returns:
+        go.Figure: A plotly figure.
+    """
+
+    # Arrow lines
+    for i in range(X_metacell.shape[0]):
+        start_x = X_metacell[i, 0]
+        start_y = X_metacell[i, 1]
+        end_x = start_x + V_metacell[i, 0] * 15
+        end_y = start_y + V_metacell[i, 1] * 15
+        
+        # Add arrow heads
+        fig.add_annotation(
+            x=end_x, 
+            y=end_y, 
+            ax=start_x, 
+            ay=start_y, 
+            xref="x", 
+            yref="y", 
+            axref="x", 
+            ayref="y",
+            showarrow=True, 
+            arrowhead=2,  # Adjust the type of arrowhead
+            arrowsize=0.55,  # Adjust the size of the arrowhead
+            arrowwidth=2,
+            arrowcolor="black"
+        )
+
+    return fig
+
+
 def plot_cells(adata: ad.AnnData, X_metacell: np.ndarray,
                 V_metacell: np.ndarray, timepoint: str, knockout: str) -> go.Figure:
     """Returns a plotly figure with single cells and metacells, along with metacell transition
@@ -66,7 +167,7 @@ def plot_cells(adata: ad.AnnData, X_metacell: np.ndarray,
         go.Figure: A plotly figure.
     """
     
-    cell_type_color_dict = {
+    cell_colors: 'dict[str, str]' = {
         'NMPs': '#8dd3c7',
         'PSM': '#008080',
         'fast_muscle': '#df4b9b',
@@ -81,65 +182,10 @@ def plot_cells(adata: ad.AnnData, X_metacell: np.ndarray,
     umap_data = umap_coords.join(adata.obs[['SEACell', 'manual_annotation']])
     umap_data = umap_data.rename(columns={'manual_annotation': 'celltype'})
 
-    # Compute the most prevalent cell type in each metacell
-    most_prevalent = umap_data.groupby('SEACell')['celltype'].agg(lambda x: x.value_counts().index[0])
-
-    # Prepare metacell data
-    celltypes = umap_data['celltype']
-    umap_data = umap_data.drop(['celltype'], axis=1)
-    mcs = umap_data.groupby('SEACell').mean().reset_index()
-    mcs['celltype'] = most_prevalent.values
-    umap_data['celltype'] = celltypes
-
-    # Create a Plotly figure
-    fig = go.Figure()
-
-    # Plot single cells
-    for cell_type, color in cell_type_color_dict.items():
-        filtered_data = umap_data[umap_data['celltype'] == cell_type]
-        fig.add_trace(go.Scatter(
-            x=filtered_data[0],
-            y=filtered_data[1],
-            mode='markers',
-            name=cell_type,
-            marker=dict(color=color, size=6, opacity=0.7),
-            showlegend=False
-        ))
-
-    # Plot metacells
-    for cell_type, color in cell_type_color_dict.items():
-        filtered_mcs = mcs[mcs['celltype'] == cell_type]
-        fig.add_trace(go.Scatter(
-            x=filtered_mcs[0],
-            y=filtered_mcs[1],
-            mode='markers',
-            name=cell_type,
-            marker=dict(color=color, size=10, line=dict(color='black', width=1.25)),
-            showlegend=False
-        ))
-
-    # Plot transition vectors (arrows with arrowheads)
-    for i in range(X_metacell.shape[0]):
-        start_x = X_metacell[i, 0]
-        start_y = X_metacell[i, 1]
-        end_x = start_x + V_metacell[i, 0] * 15
-        end_y = start_y + V_metacell[i, 1] * 15
-        
-        fig.add_annotation(
-            x=end_x, 
-            y=end_y, 
-            ax=start_x, 
-            ay=start_y, 
-            xref="x", 
-            yref="y", 
-            axref="x", 
-            ayref="y",
-            showarrow=True, 
-            arrowhead=2,  # Adjust the type of arrowhead
-            arrowsize=0.55,  # Adjust the size of the arrowhead
-            arrowwidth=2,
-            arrowcolor="black"
-        )
+    # Plot each component
+    fig = plot_single_cells(cell_colors, umap_data)
+    fig = plot_meta_cells(fig, cell_colors, umap_data)
+    fig = plot_trans_vecs(fig, X_metacell, V_metacell)
 
     # Customize layout
     fig.update_layout(
@@ -173,7 +219,6 @@ def st_setup(timepoints: list[str], tf_names: list[str]) -> 'tuple[str, str]':
     )
 
     # Get timepoint to show
-    # Get celltype
     timepoint = st.sidebar.selectbox(
         'Select a time point to plot',
         timepoints
