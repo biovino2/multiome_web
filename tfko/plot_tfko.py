@@ -86,45 +86,70 @@ def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarr
         go.Figure: A plotly figure.
     """
 
+    lines_x = []
+    lines_y = []
+    arrowheads_x = []
+    arrowheads_y = []
+
     # Arrow lines
     for i in range(X_metacell.shape[0]):
         start_x = X_metacell[i, 0]
         start_y = X_metacell[i, 1]
     
-        # Normalize the velocity vector similar to how quiver would do
+        # Calculate end point of the line
         magnitude = np.sqrt(V_metacell[i, 0]**2 + V_metacell[i, 1]**2)
-        scale_factor = 1 / 2
-        end_x = start_x + (V_metacell[i, 0] * scale_factor / magnitude)
-        end_y = start_y + (V_metacell[i, 1] * scale_factor / magnitude)
-        
-        # Add arrow heads
-        fig.add_annotation(
-            x=end_x, 
-            y=end_y, 
-            ax=start_x, 
-            ay=start_y, 
-            xref=f'x{ref}', 
-            yref=f'y{ref}', 
-            axref=f'x{ref}', 
-            ayref=f'y{ref}',
-            showarrow=True, 
-            arrowhead=2,  # Adjust the type of arrowhead
-            arrowsize=0.55,  # Adjust the size of the arrowhead
-            arrowwidth=2,
-            arrowcolor="black"
-        )
+        end_x = start_x + (V_metacell[i, 0] * 0.5 / magnitude)
+        end_y = start_y + (V_metacell[i, 1] * 0.5 / magnitude)
+    
+        # Line between start and end, None to break the line
+        lines_x.extend([start_x, end_x, None])
+        lines_y.extend([start_y, end_y, None])
+    
+        # Arrowhead direction
+        arrowhead_length = 0.05
+        arrowhead_angle = np.pi / 5  # 30 degrees for arrowhead angle
+
+        # Calculate angle of the line
+        angle = np.arctan2(end_y - start_y, end_x - start_x)
+    
+        # Create two arrowhead points (left and right)
+        left_x = end_x - arrowhead_length * np.cos(angle - arrowhead_angle)
+        left_y = end_y - arrowhead_length * np.sin(angle - arrowhead_angle)
+        right_x = end_x - arrowhead_length * np.cos(angle + arrowhead_angle)
+        right_y = end_y - arrowhead_length * np.sin(angle + arrowhead_angle)
+    
+        # Use None to break line between each arrowhead
+        arrowheads_x.extend([end_x, left_x, None, end_x, right_x, None])
+        arrowheads_y.extend([end_y, left_y, None, end_y, right_y, None])
+
+    # Add the lines as scattergl
+    fig.add_trace(go.Scattergl(
+        x=lines_x, 
+        y=lines_y,
+        mode='lines',
+        line=dict(color='black', width=2),
+        showlegend=False
+    ))
+    
+    # Add arrowheads as scattergl
+    fig.add_trace(go.Scattergl(
+        x=arrowheads_x,
+        y=arrowheads_y,
+        mode='lines',
+        line=dict(color='black', width=2),
+        showlegend=False
+    ))
 
     return fig
 
 
-def plot_cells(timepoint: str, tf_names) -> go.Figure:
+def plot_cells(knockouts: list[str], timepoint: str) -> go.Figure:
     """Returns a plotly figure with single cells and metacells, along with metacell transition
     probabilities given the TF knockout, plotted on UMAP coordinates
 
     Args:
+        knockouts (list): The list of TF knockouts.
         timepoint (str): The time point.
-        knockout (str): The TF knockout.
-        timepoints (dict): The dictionary of time points.
 
     Returns:
         go.Figure: A plotly figure.
@@ -140,27 +165,17 @@ def plot_cells(timepoint: str, tf_names) -> go.Figure:
         'tail_bud': '#7570b3'
     }
 
-    # Obtain selected knockouts
-    selected_knockouts = []
-    for i, key in enumerate(st.session_state.selectboxes):
-        st.sidebar.selectbox(
-            'Select a knockout to plot',
-            tf_names,
-            key=key
-        )
-        selected_knockouts.append(st.session_state[key])
-
     # Create figure (subplots)
     fig = make_subplots(
-        rows=len(selected_knockouts),
+        rows=len(knockouts),
         cols=1,
-        subplot_titles=[f"{ko}" for ko in selected_knockouts],
+        subplot_titles=[f"{ko}" for ko in knockouts],
         shared_xaxes=True,
         shared_yaxes=True,
         )
     
     # Generate plot for each knockout
-    for i, knockout in enumerate(selected_knockouts):
+    for i, knockout in enumerate(knockouts):
 
         # Load data
         adata = sc.read_h5ad(f"tfko/data/{timepoint}_KO.h5ad")
@@ -250,7 +265,15 @@ def main():
     timepoint = st_setup(list(timepoints.keys()))
 
     # Generate plot
-    fig = plot_cells(timepoints[timepoint], tf_names)    
+    selected_knockouts = []
+    for key in st.session_state.selectboxes:
+        st.sidebar.selectbox(
+            'Select a knockout to plot',
+            tf_names,
+            key=key
+        )
+        selected_knockouts.append(st.session_state[key])
+    fig = plot_cells(selected_knockouts, timepoints[timepoint])    
     st.plotly_chart(fig)
 
 
