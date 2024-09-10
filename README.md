@@ -1,5 +1,5 @@
-# streamlit
-streamlit stomping grounds
+# multiome_web
+This repository contains several interactive figures that can be run on any machine and accessed through a browser.
 
 ## Installation
 You can install this repository with the following commands:
@@ -7,22 +7,24 @@ You can install this repository with the following commands:
 ```
 git clone https://github.com/biovino2/streamlit
 cd streamlit/
+conda env create -f env.yml
+conda activate multiome_web
 ```
 
-Then install the following requirements (conda recommended):
+### Alternate installation
+
+If creating a conda environment does not work for you, try installing each package one by one:
 - python==3.12.4
 - streamlit==1.37.0
-- figeno==1.4.5
 - scanpy==1.10.2
-- gtfparse==2.5.0
-- plotly==5.23.0
-- polars==0.20.31
+- plotly==5.24.0
+- polars==1.6.0
 
 ### CCAN plots
 Run the following command to run a streamlit instance that shows CCAN and gene track plots with your gene of choice:
 
 ```
-streamlit run ccan/plot_all.py
+streamlit run ccan/plot_ccan.py
 ```
 
 ### Correlation plots
@@ -37,6 +39,13 @@ Run the following command to run a streamlit instance that shows CellOracle GRNs
 
 ```
 streamlit run grn/plot_grn.py
+```
+
+### TF Knockouts
+Run the following command to run a streamlit instance that depicts the transition probabilities of metacells given a transcription factor knockout:
+
+```
+streamlit run tfko/plot_tfko.py
 ```
 
 ## Viewing a streamlit instance
