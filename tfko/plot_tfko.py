@@ -3,52 +3,12 @@
 Ben Iovino  09/05/24    CZ-Biohub
 """
 
-import anndata as ad
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
 import scanpy as sc
 import streamlit as st
 import numpy as np
-
-
-def average_metacells(adata: ad.AnnData, knockout='WT') -> 'tuple[np.ndarray, np.ndarray]':
-    """Returns the average UMAP position and transition vector of metacells based off each cell
-    belonging to a metacell.
-
-    Args:
-        adata (ad.AnnData): The AnnData object.
-        knockout (str): The transcription factor knockout (default is wildtype (WT)).
-
-    Returns:
-        tuple: A tuple containing the average UMAP position and transition vector of metacells.
-    """
-
-    if knockout != 'WT_global_nmps':
-        knockout += '_KO'
-
-    # Cell-level UMAP and 2D transition vectors
-    X_umap = adata.obsm['X_umap_aligned']
-    V_cell = adata.obsm[f'{knockout}_umap_aligned'] 
-    
-    # Convert metacell column to categorical if it's not already
-    if not pd.api.types.is_categorical_dtype(adata.obs['SEACell']):
-        metacells = pd.Categorical(adata.obs['SEACell'])
-    else:
-        metacells = adata.obs['SEACell']
-    
-    # X_metacell is the average UMAP position of the metacells
-    # V_metacell is the average transition vector of the metacells
-    n_metacells = len(metacells.categories)
-    X_metacell = np.zeros((n_metacells, 2))
-    V_metacell = np.zeros((n_metacells, 2))
-    
-    for i, category in enumerate(metacells.categories):
-        mask = metacells == category
-        X_metacell[i] = X_umap[mask].mean(axis =0)
-        V_metacell[i] = V_cell[mask].mean(axis=0)
-    
-    return X_metacell, V_metacell
 
 
 def plot_single_cells(cell_colors: 'dict[str, str]', umap_data: pd.DataFrame) -> go.Figure:
@@ -206,7 +166,7 @@ def plot_cells(timepoint: str, tf_names) -> go.Figure:
         adata = sc.read_h5ad(f"tfko/data/{timepoint}_KO.h5ad")
         adata.obs['SEACell'] = adata.obs['SEACell'].astype('object')
         adata.obs['manual_annotation'] = adata.obs['manual_annotation'].astype('object')
-        X_metacell, V_metacell = average_metacells(adata, knockout)
+        X_metacell, V_metacell = np.load(f"tfko/data/metacells/{timepoint}_{knockout}_metacells.npz").values()
     
         # Prepare data for plotting
         umap_coords = pd.DataFrame(adata.obsm['X_umap_aligned'], columns=[0, 1], index=adata.obs_names)
@@ -233,11 +193,14 @@ def plot_cells(timepoint: str, tf_names) -> go.Figure:
     return fig
 
 
-def st_setup(timepoints: list[str]) -> 'tuple[str, str]':
+def st_setup(timepoints: list[str]) -> str:
     """Initializes streamlit session.
 
     Args:
-        tf_names (list): The list of transcription factors to knockout.
+        timepoints (list): The list of time points.
+
+    Returns:
+        str: The time point.
     """
 
     st.set_page_config(layout="wide")
@@ -249,7 +212,7 @@ def st_setup(timepoints: list[str]) -> 'tuple[str, str]':
     if "selectboxes" not in st.session_state:
         st.session_state.selectboxes = [0]
 
-   # Set up buttons for adding/removing timepoints
+   # Set up buttons for adding/removing knockouts
     with st.sidebar:
         add, reset = st.columns([1, 1])
         with add:
@@ -272,7 +235,7 @@ def main():
     """
     """
 
-    with open('tfko/data/common_genes.txt', 'r') as file:
+    with open('tfko/data/common_tfs.txt', 'r') as file:
         tf_names = file.read().splitlines()
     tf_names.append('WT_global_nmps')
 
