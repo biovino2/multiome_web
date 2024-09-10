@@ -5,6 +5,7 @@ Ben Iovino  09/05/24    CZ-Biohub
 
 import anndata as ad
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import pandas as pd
 import scanpy as sc
 import streamlit as st
@@ -111,7 +112,7 @@ def plot_meta_cells(fig: go.Figure, cell_colors: 'dict[str, str]', umap_data: pd
     return fig
 
 
-def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarray) -> go.Figure:
+def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarray, ref: int) -> go.Figure:
     """Returns a scatter plot containing arrows representing the transition probabilities of
     metacells in UMAP space.
 
@@ -119,6 +120,7 @@ def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarr
         fig (go.Figure): The plotly figure object.
         X_metacell (np.ndarray): The average UMAP position of the metacells.
         V_metacell (np.ndarray): The average transition vector of the metacells.
+        ref (int): The reference point.
 
     Returns:
         go.Figure: A plotly figure.
@@ -128,8 +130,12 @@ def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarr
     for i in range(X_metacell.shape[0]):
         start_x = X_metacell[i, 0]
         start_y = X_metacell[i, 1]
-        end_x = start_x + V_metacell[i, 0] * 15
-        end_y = start_y + V_metacell[i, 1] * 15
+    
+        # Normalize the velocity vector similar to how quiver would do
+        magnitude = np.sqrt(V_metacell[i, 0]**2 + V_metacell[i, 1]**2)
+        scale_factor = 1 / 2
+        end_x = start_x + (V_metacell[i, 0] * scale_factor / magnitude)
+        end_y = start_y + (V_metacell[i, 1] * scale_factor / magnitude)
         
         # Add arrow heads
         fig.add_annotation(
@@ -137,10 +143,10 @@ def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarr
             y=end_y, 
             ax=start_x, 
             ay=start_y, 
-            xref="x", 
-            yref="y", 
-            axref="x", 
-            ayref="y",
+            xref=f'x{ref}', 
+            yref=f'y{ref}', 
+            axref=f'x{ref}', 
+            ayref=f'y{ref}',
             showarrow=True, 
             arrowhead=2,  # Adjust the type of arrowhead
             arrowsize=0.55,  # Adjust the size of the arrowhead
@@ -151,17 +157,14 @@ def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarr
     return fig
 
 
-def plot_cells(adata: ad.AnnData, X_metacell: np.ndarray,
-                V_metacell: np.ndarray, timepoint: str, knockout: str) -> go.Figure:
+def plot_cells(timepoint: str, tf_names) -> go.Figure:
     """Returns a plotly figure with single cells and metacells, along with metacell transition
     probabilities given the TF knockout, plotted on UMAP coordinates
 
     Args:
-        adata (ad.AnnData): The AnnData object.
-        X_metacell (np.ndarray): The average UMAP position of the metacells.
-        V_metacell (np.ndarray): The average transition vector of the metacells.
         timepoint (str): The time point.
         knockout (str): The TF knockout.
+        timepoints (dict): The dictionary of time points.
 
     Returns:
         go.Figure: A plotly figure.
@@ -176,29 +179,61 @@ def plot_cells(adata: ad.AnnData, X_metacell: np.ndarray,
         'spinal_cord': '#d95f02',
         'tail_bud': '#7570b3'
     }
+
+    # Obtain selected knockouts
+    selected_knockouts = []
+    for i, key in enumerate(st.session_state.selectboxes):
+        st.sidebar.selectbox(
+            'Select a knockout to plot',
+            tf_names,
+            key=key
+        )
+        selected_knockouts.append(st.session_state[key])
+
+    # Create figure (subplots)
+    fig = make_subplots(
+        rows=len(selected_knockouts),
+        cols=1,
+        subplot_titles=[f"{ko}" for ko in selected_knockouts],
+        shared_xaxes=True,
+        shared_yaxes=True,
+        )
     
-    # Prepare data for plotting
-    umap_coords = pd.DataFrame(adata.obsm['X_umap_aligned'], columns=[0, 1], index=adata.obs_names)
-    umap_data = umap_coords.join(adata.obs[['SEACell', 'manual_annotation']])
-    umap_data = umap_data.rename(columns={'manual_annotation': 'celltype'})
+    # Generate plot for each knockout
+    for i, knockout in enumerate(selected_knockouts):
 
-    # Plot each component
-    fig = plot_single_cells(cell_colors, umap_data)
-    fig = plot_meta_cells(fig, cell_colors, umap_data)
-    fig = plot_trans_vecs(fig, X_metacell, V_metacell)
+        # Load data
+        adata = sc.read_h5ad(f"tfko/data/{timepoint}_KO.h5ad")
+        adata.obs['SEACell'] = adata.obs['SEACell'].astype('object')
+        adata.obs['manual_annotation'] = adata.obs['manual_annotation'].astype('object')
+        X_metacell, V_metacell = average_metacells(adata, knockout)
+    
+        # Prepare data for plotting
+        umap_coords = pd.DataFrame(adata.obsm['X_umap_aligned'], columns=[0, 1], index=adata.obs_names)
+        umap_data = umap_coords.join(adata.obs[['SEACell', 'manual_annotation']])
+        umap_data = umap_data.rename(columns={'manual_annotation': 'celltype'})
 
-    # Customize layout
-    fig.update_layout(
-        width=800, height=600,
-        title=f"{knockout} KO at {timepoint}",
-        xaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
-        yaxis=dict(showgrid=False, showticklabels=False, zeroline=False)
-    )
+        # Plot each component
+        plot = plot_single_cells(cell_colors, umap_data)
+        plot = plot_meta_cells(plot, cell_colors, umap_data)
+        plot = plot_trans_vecs(plot, X_metacell, V_metacell, i+1)
+
+        # Add plot to figure
+        for trace in plot.data:
+            fig.add_trace(trace, row=i+1, col=1)
+            fig.update_xaxes(row=i+1, col=1, matches='x',
+                            showticklabels=False, showgrid=False, zeroline=False)
+            fig.update_yaxes(row=i+1, col=1, matches='y',
+                            showticklabels=False, showgrid=False, zeroline=False)
+        for annotation in plot.layout.annotations:
+            fig.add_annotation(annotation, row=i+1, col=1)
+
+    fig.update_layout(height=1000, width=2000)
 
     return fig
 
 
-def st_setup(timepoints: list[str], tf_names: list[str]) -> 'tuple[str, str]':
+def st_setup(timepoints: list[str]) -> 'tuple[str, str]':
     """Initializes streamlit session.
 
     Args:
@@ -210,13 +245,19 @@ def st_setup(timepoints: list[str], tf_names: list[str]) -> 'tuple[str, str]':
     st.write('')
     st.sidebar.markdown('# Settings')
 
-    # Get TF to knockout
-    default = tf_names.index('WT_global_nmps')
-    trans_fac = st.sidebar.selectbox(
-        'Select a transcription factor to knockout',
-        tf_names,
-        index=default
-    )
+    # Initialize drop down boxes
+    if "selectboxes" not in st.session_state:
+        st.session_state.selectboxes = [0]
+
+   # Set up buttons for adding/removing timepoints
+    with st.sidebar:
+        add, reset = st.columns([1, 1])
+        with add:
+            if st.button('Add Knockout'):
+                st.session_state.selectboxes.append(len(st.session_state.selectboxes))
+        with reset:
+            if st.button('Reset'):
+                st.session_state.selectboxes = [0]
 
     # Get timepoint to show
     timepoint = st.sidebar.selectbox(
@@ -224,7 +265,7 @@ def st_setup(timepoints: list[str], tf_names: list[str]) -> 'tuple[str, str]':
         timepoints
     )
     
-    return timepoint, trans_fac
+    return timepoint
 
 
 def main():
@@ -235,6 +276,7 @@ def main():
         tf_names = file.read().splitlines()
     tf_names.append('WT_global_nmps')
 
+    # Set up streamlit
     timepoint = 'TDR125'
     timepoints = {'10 hours post fertilization': 'TDR126',
                 '12 hours post fertilization': 'TDR127',
@@ -242,17 +284,10 @@ def main():
                 '16 hours post fertilization': 'TDR118',
                 '19 hours post fertilization': 'TDR125',
                 '24 hours post fertilization': 'TDR124'}
-    
-    timepoint, trans_fac = st_setup(list(timepoints.keys()), tf_names)
+    timepoint = st_setup(list(timepoints.keys()))
 
-    # Load data
-    adata = sc.read_h5ad(f"tfko/data/{timepoints[timepoint]}_KO.h5ad")
-    adata.obs['SEACell'] = adata.obs['SEACell'].astype('object')
-    adata.obs['manual_annotation'] = adata.obs['manual_annotation'].astype('object')
-
-    # Calculate metacell averages and generate plot
-    X_metacell, V_metacell = average_metacells(adata, trans_fac)
-    fig = plot_cells(adata, X_metacell, V_metacell, timepoint, trans_fac)    
+    # Generate plot
+    fig = plot_cells(timepoints[timepoint], tf_names)    
     st.plotly_chart(fig)
 
 
