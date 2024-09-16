@@ -251,37 +251,30 @@ def st_setup(timepoints: list[str]) -> str:
     return timepoint
 
 
-def main():
-    """
-    """
+# Main
+with open('tfko/data/common_tfs.txt', 'r') as file:
+    tf_names = file.read().splitlines()
+tf_names.append('WT_global_nmps')
 
-    with open('tfko/data/common_tfs.txt', 'r') as file:
-        tf_names = file.read().splitlines()
-    tf_names.append('WT_global_nmps')
-
-    # Set up streamlit
-    timepoint = 'TDR125'
-    timepoints = {'10 hours post fertilization': 'TDR126',
+# Set up streamlit
+timepoint = 'TDR125'
+timepoints = {'10 hours post fertilization': 'TDR126',
                 '12 hours post fertilization': 'TDR127',
                 '14 hours post fertilization': 'TDR128',
                 '16 hours post fertilization': 'TDR118',
                 '19 hours post fertilization': 'TDR125',
                 '24 hours post fertilization': 'TDR124'}
-    timepoint = st_setup(list(timepoints.keys()))
-    st.markdown(f'### {timepoint}')
+timepoint = st_setup(list(timepoints.keys()))
+st.markdown(f'### {timepoint}')
 
-    # Generate plot
-    selected_knockouts = []
-    for key in st.session_state.selectboxes:
-        st.sidebar.selectbox(
-            'Select a knockout to plot',
-            tf_names,
-            key=key
-        )
-        selected_knockouts.append(st.session_state[key])
-    fig = plot_cells(selected_knockouts, timepoints[timepoint])    
-    st.plotly_chart(fig)
-
-
-if __name__ == '__main__':
-    main()
+# Generate plot
+selected_knockouts = []
+for key in st.session_state.selectboxes:
+    st.sidebar.selectbox(
+        'Select a knockout to plot',
+        tf_names,
+        key=key
+    )
+    selected_knockouts.append(st.session_state[key])
+fig = plot_cells(selected_knockouts, timepoints[timepoint])
+st.plotly_chart(fig)
