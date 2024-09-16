@@ -172,6 +172,7 @@ def plot_cells(knockouts: list[str], timepoint: str) -> go.Figure:
         subplot_titles=[f"{ko}" for ko in knockouts],
         shared_xaxes=True,
         shared_yaxes=True,
+        vertical_spacing=0.05,
         )
     
     # Generate plot for each knockout
@@ -219,8 +220,12 @@ def st_setup(timepoints: list[str]) -> str:
     """
 
     st.set_page_config(layout="wide")
-    st.title('Transcription Factor Knockout')
-    st.write('')
+    st.title('In-Silico Transcription Factor Knockout')
+    st.write('For any time point (hours post fertilization), we plot the mesodermal and neuro-ectodermal cells in UMAP space,' \
+            ' colored by their cell type. We also plot the metacells (SEACells), depicted as larger points, colored by their most' \
+            ' prevalent cell type. The arrows represent the transition probabilities of the metacells given the transcription factor' \
+            ' knockout')
+    st.write('You can select the time point and knockouts to display using the sidebar on the left.')
     st.sidebar.markdown('# Settings')
 
     # Initialize drop down boxes
@@ -263,6 +268,7 @@ def main():
                 '19 hours post fertilization': 'TDR125',
                 '24 hours post fertilization': 'TDR124'}
     timepoint = st_setup(list(timepoints.keys()))
+    st.markdown(f'### {timepoint}')
 
     # Generate plot
     selected_knockouts = []

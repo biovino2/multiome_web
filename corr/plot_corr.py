@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
 import scanpy as sc
-from sklearn.metrics import normalized_mutual_info_score as nmis
+from scipy.stats import pearsonr
 import streamlit as st
 from preprocess import define_color_dict
 
@@ -42,11 +42,13 @@ def st_setup(gene_names: 'list[str]'):
 
     # Create selectboxes
     selected_genes = []
+    default = gene_names.index('slc4a1a')
     for key in st.session_state.selectboxes:
         st.sidebar.selectbox(
             'Select a gene to plot',
             gene_names,
-            key=key
+            key=key,
+            index=default
         )
         selected_genes.append(st.session_state[key])
 
@@ -94,7 +96,7 @@ def plot_genes(gene: str, gene_dict: 'dict[str:sc.AnnData]') -> plt.Figure:
     fig = make_subplots(rows=2, cols=3, subplot_titles=list(timepoints.values()))
 
     # Loop over all timepoints
-    mi_scores = []
+    corr_scores = []
     rna_max, atac_max = 0, 0
     for index, sample_id in enumerate(list(timepoints.keys())):
 
@@ -105,9 +107,10 @@ def plot_genes(gene: str, gene_dict: 'dict[str:sc.AnnData]') -> plt.Figure:
 
         # Calculate mutual information
         if np.all(expr_rna == expr_rna[0]) or np.all(expr_atac== expr_atac[0]):
-            mi_scores.append(np.nan)
+            corr_scores.append(np.nan)
         else:
-            mi_scores.append(nmis(expr_rna, expr_atac, average_method='max'))
+            correlation, _ = pearsonr(expr_rna, expr_atac)
+            corr_scores.append(correlation)
 
         # Map colors to cell types
         color_dict = define_color_dict()
@@ -139,11 +142,11 @@ def plot_genes(gene: str, gene_dict: 'dict[str:sc.AnnData]') -> plt.Figure:
 
     # Update titles
     for i, annotation in enumerate(fig.layout.annotations):
-        annotation.text = f"{list(timepoints.values())[i]}<br>Normalized Mutual Information: {mi_scores[i]:.2f}"
+        annotation.text = f"{list(timepoints.values())[i]}<br>Correlation: {corr_scores[i]:.2f}"
         annotation.font.size = 12
 
     # Update axes labels and titles
-    for i in range (0, len(mi_scores)):
+    for i in range (0, len(corr_scores)):
         fig.update_xaxes(title='ATAC', row=i//3+1, col=i%3+1, title_font=dict(size=12), range=[0, atac_max])
         fig.update_yaxes(title='RNA', row=i//3+1, col=i%3+1, title_font=dict(size=12), range=[0, rna_max])
 
