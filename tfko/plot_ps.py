@@ -54,7 +54,8 @@ def make_figure(timepoints: dict[str:str]) -> go.Figure:
             x=df_merged['meso'],
             y=df_merged['ne'],
             mode='markers',
-            marker=dict(size=10, color='dodgerblue'),
+            marker=dict(size=5, color='dodgerblue', opacity=0.6),
+            hoverinfo='text',
             text=df_merged.index,
             showlegend=False
         )
@@ -70,6 +71,7 @@ def make_figure(timepoints: dict[str:str]) -> go.Figure:
     for i in range (0, len(timepoints)):
         fig.update_xaxes(title='Mesoderm', row=i//3+1, col=i%3+1, range=[0.4, 0.80])
         fig.update_yaxes(title='Neuro-ectoderm', row=i//3+1, col=i%3+1, range=[0.4, 0.65])
+    fig.update_layout(width=1200, height=700)
 
     return fig
 

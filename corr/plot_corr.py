@@ -23,8 +23,11 @@ def st_setup(gene_names: 'list[str]'):
 
     st.set_page_config(layout="wide")
     st.sidebar.markdown('# Settings')
-    st.title('Meta-cell ATAC-RNA correlation')
-    st.write('For each gene, we plot plot time-resolved scatter plots of ATAC and RNA expression.')
+    st.title('ATAC and RNA Correlation')
+    st.write('For each time point, we plot plot time-resolved scatter plots of ATAC (x-axis) and RNA expression (y-axis) ' \
+             'for any gene. Each point represents a metacell (SEACell), colored by cell type. The correlation between ' \
+              'chromatin accessbility and gene expression is also calculated for each time point.')
+    st.write('You can add multiple genes to compare them side by side.')
 
     # Initialize drop down boxes
     if "selectboxes" not in st.session_state:
@@ -123,6 +126,7 @@ def plot_genes(gene: str, gene_dict: 'dict[str:sc.AnnData]') -> plt.Figure:
                         y=expr_rna,
                         mode='markers',
                         marker=dict(color=colors),
+                        hoverinfo='text',
                         text=type_colors,
                     )
         
@@ -143,12 +147,12 @@ def plot_genes(gene: str, gene_dict: 'dict[str:sc.AnnData]') -> plt.Figure:
     # Update titles
     for i, annotation in enumerate(fig.layout.annotations):
         annotation.text = f"{list(timepoints.values())[i]}<br>Correlation: {corr_scores[i]:.2f}"
-        annotation.font.size = 12
+        annotation.font.size = 14
 
     # Update axes labels and titles
     for i in range (0, len(corr_scores)):
-        fig.update_xaxes(title='ATAC', row=i//3+1, col=i%3+1, title_font=dict(size=12), range=[0, atac_max])
-        fig.update_yaxes(title='RNA', row=i//3+1, col=i%3+1, title_font=dict(size=12), range=[0, rna_max])
+        fig.update_xaxes(title='ATAC', row=i//3+1, col=i%3+1, title_font=dict(size=10), range=[0, atac_max])
+        fig.update_yaxes(title='RNA', row=i//3+1, col=i%3+1, title_font=dict(size=10), range=[0, rna_max])
 
     return fig
 

@@ -178,6 +178,10 @@ def plot_cells(knockouts: list[str], timepoint: str) -> go.Figure:
     # Generate plot for each knockout
     for i, knockout in enumerate(knockouts):
 
+        # Map control to WT_global_nmps (pretty hacky)
+        if knockout == 'Control (No Knockout)':
+            knockout = 'WT_global_nmps'
+
         # Load data
         adata = sc.read_h5ad(f"tfko/data/{timepoint}_KO.h5ad")
         adata.obs['SEACell'] = adata.obs['SEACell'].astype('object')
@@ -204,7 +208,9 @@ def plot_cells(knockouts: list[str], timepoint: str) -> go.Figure:
         for annotation in plot.layout.annotations:
             fig.add_annotation(annotation, row=i+1, col=1)
 
-    fig.update_layout(height=1000, width=2000)
+    # Scale height and width with number of knockouts
+    height = 600 * len(knockouts)
+    fig.update_layout(height=height, width=1000)
 
     return fig
 
@@ -254,7 +260,7 @@ def st_setup(timepoints: list[str]) -> str:
 # Main
 with open('tfko/data/common_tfs.txt', 'r') as file:
     tf_names = file.read().splitlines()
-tf_names.append('WT_global_nmps')
+tf_names.append('Control (No Knockout)')
 
 # Set up streamlit
 timepoint = 'TDR125'
@@ -269,12 +275,16 @@ st.markdown(f'### {timepoint}')
 
 # Generate plot
 selected_knockouts = []
+default = 'Control (No Knockout)'
 for key in st.session_state.selectboxes:
     st.sidebar.selectbox(
         'Select a knockout to plot',
         tf_names,
+        index=tf_names.index(default),
         key=key
     )
     selected_knockouts.append(st.session_state[key])
 fig = plot_cells(selected_knockouts, timepoints[timepoint])
+
+# Display plot in middle of page
 st.plotly_chart(fig)

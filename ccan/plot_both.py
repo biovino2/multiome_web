@@ -144,7 +144,7 @@ def plot_gene(fig: go.Figure, gene_data: pl.DataFrame, start: int, end: int) -> 
             arrowwidth=2,
             arrowcolor="lightgray"
         )
-    
+
     return fig
 
 
@@ -154,6 +154,8 @@ def plot_atac(fig: go.Figure, atac_data: pl.DataFrame) -> go.Figure:
     Args:
         fig (go.Figure): The plotly figure.
         atac_data (pl.DataFrame): The ATAC data.
+        timepoints (dict): A dictionary mapping timepoints to their names.
+        colors (dict): A dictionary mapping timepoints to their colors.
 
     Returns:
         go.Figure: The plotly figure with the ATAC data.
@@ -195,6 +197,54 @@ def plot_atac(fig: go.Figure, atac_data: pl.DataFrame) -> go.Figure:
             f'<b>Start:</b> {atac_start}<br>'
             f'<b>End:</b> {atac_end}<br>',
             showlegend=False
+        ))
+
+    return fig
+
+
+def plot_legend(fig: go.Figure) -> go.Figure:
+    """Adds a legend for the transcription direction, exons, and ATAC peaks, individually.
+
+    Args:
+        fig (go.Figure): The plotly figure.
+
+    Returns:
+        go.Figure: The plotly figure with the legend.
+    """
+
+    timepoints = {'TDR126': '10 hours post fertilization',
+                    'TDR127': '12 hours post fertilization',
+                    'TDR128': '14 hours post fertilization',
+                    'TDR118': '16 hours post fertilization',
+                    'TDR125': '19 hours post fertilization',
+                    'TDR124': '24 hours post fertilization'}
+    colors = {'TDR126': '#440154', 'TDR127': '#414487', 'TDR128': '#2A788E',
+               'TDR118': '#22A884', 'TDR125': '#7AD151', 'TDR124': '#FDE725'}
+
+    # Transcription direction
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None],  # Draw the arrow line
+        mode='lines+markers',
+        line=dict(color='lightgray', width=3),  # Line for the arrow's body
+        marker=dict(symbol='triangle-right', size=12, color='lightgray'),  # Arrowhead marker
+        name='Transcription direction'
+    ))
+
+    # Exons
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None],
+        mode='markers',
+        marker=dict(size=12, color='dodgerblue', symbol='square'),
+        name='Exon'
+    ))
+
+    # ATAC peaks
+    for key, color in colors.items():
+        fig.add_trace(go.Scatter(
+            x=[None], y=[0.15, 0.15],
+            mode='markers',
+            marker=dict(size=12, color=color, symbol='square'),
+            name=f"ATAC peak - {timepoints[key]}"
         ))
 
     return fig
