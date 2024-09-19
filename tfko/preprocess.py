@@ -23,13 +23,14 @@ def get_adata(path: str, timepoints: 'list[str]'):
     for timepoint in timepoints:
 
         # Oracle object - has transition probabilities
-        oracle_filename = f'{path}/14_{timepoint}_in_silico_KO_trans_probs_added.celloracle.oracle'
+        oracle_filename = f'{path}/oracle/14_{timepoint}_in_silico_KO_trans_probs_added.celloracle.oracle'
         co_object = co.load_hdf5(oracle_filename)
         genes[timepoint] = co_object.active_regulatory_genes  # Update list of genes
 
         # Metacell assignments
-        seacells_filename = f'{path}/{timepoint}_seacells_obs_manual_annotation_30cells.csv'
+        seacells_filename = f'{path}/oracle/{timepoint}_seacells_obs_manual_annotation_30cells.csv'
         mc_df = pd.read_csv(seacells_filename, index_col=0)
+        seacell_mapping = mc_df['SEACell'].to_dict() 
 
         # Subset for adata, few obs columns and all obsm
         adata = co_object.adata
@@ -38,8 +39,8 @@ def get_adata(path: str, timepoints: 'list[str]'):
             obs=adata.obs[['manual_annotation']],
             obsm=adata.obsm
         )
-        adata_subset.obs['SEACell'] = mc_df['SEACell']
-        adata_subset.write(f'tfko/data/{timepoint}_KO.h5ad')
+        adata_subset.obs['SEACell'] = adata_subset.obs_names.map(seacell_mapping)
+        adata_subset.write(f'{path}/{timepoint}_KO.h5ad')
 
     # Find intersection of genes
     common_tfs = set(genes[timepoints[0]])
@@ -106,7 +107,7 @@ def main():
     """
     """
 
-    path = 'tfko/data/oracle'
+    path = 'tfko/data'
     if not os.path.exists(path):
         os.makedirs(path)
 
