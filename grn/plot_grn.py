@@ -8,37 +8,48 @@ import plotly.graph_objects as go
 import streamlit as st
 
 
-def load_data(celltype: str, timepoint: str) -> 'pd.DataFrame':
+def load_data(celltype: str, timepoint: str, control: str) -> 'pd.DataFrame':
     """Returns counts for celltype at a timepoint.
 
     Args:
         celltype (str): The celltype to load.
         timepoint (str): The timepoint to load.
+        control (str): The control variable (time point or cell type)
 
     Returns:
         df_counts (pd.DataFrame): The counts for the celltype at the timepoint.
     """
 
     path = 'grn/data'
-    df_counts = pd.read_csv(f"{path}/{celltype}/{celltype}_{timepoint}.csv", index_col=0)
+
+    # Plotting multiple time points for each cell type
+    if control == 'timepoint':
+        path += '/ct'  # this is very confusing
+        df_counts = pd.read_csv(f"{path}/{celltype}/{celltype}_{timepoint}.csv", index_col=0)
+
+    # Plotting multiple cell types for each time point
+    if control == 'celltype':
+        path += '/tp'  # still confusing
+        df_counts = pd.read_csv(f"{path}/{timepoint}/{timepoint}_{celltype}.csv", index_col=0)
     df_counts = df_counts.transpose()  # genes on y-axis, TFs on x-axis
 
     return df_counts
 
 
-def plot_grn(celltype: str, timepoint: str) -> 'go.Heatmap':
+def plot_grn(celltype: str, timepoint: str, control: str) -> 'go.Heatmap':
     """Returns a plotly Heatmap of the GRN.
 
     Args:
         celltype (str): The celltype to plot.
         timepoint (str): The timepoint to plot.
+        control (str): The control variable (time point or cell type)
 
     Returns:
         fig (go.Heatmap): The plotly figure.
     """
 
     # Create heatmap directly using graph_objects
-    df_counts = load_data(celltype, timepoint)
+    df_counts = load_data(celltype, timepoint, control)
     fig = go.Heatmap(
         z=df_counts.values,
         x=df_counts.columns,

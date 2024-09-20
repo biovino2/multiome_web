@@ -77,13 +77,18 @@ def make_figure(celltype: str, timepoints: dict[str:str]):
         cols=len(selected_timepoints),
         subplot_titles=[f"{tp}" for tp in selected_timepoints],
         shared_yaxes=True,
-        shared_xaxes=True
+        shared_xaxes=True,
         )
 
     # Generate heatmap for each subplot
     for i, timepoint in enumerate(selected_timepoints):
-        plot = plot_grn(celltype, timepoints[timepoint])
+        plot = plot_grn(celltype, timepoints[timepoint], 'timepoint')
         fig.add_trace(plot, row=1, col=i+1)
+
+        # Update hover template and axis labels
+        fig.data[-1].update(
+            hovertemplate='TF: %{x}<br>Gene: %{y}<br>Strength: %{z}<extra></extra>',
+        hoverlabel=dict(namelength=0))
         fig.update_xaxes(tickfont=dict(size=12), row=1, col=i+1, matches='x')
         fig.update_yaxes(tickfont=dict(size=12), row=1, col=i+1, matches='y')
 
@@ -100,7 +105,8 @@ timepoints = {'10 hours post fertilization': 'TDR126',
               '16 hours post fertilization': 'TDR118',
               '19 hours post fertilization': 'TDR125',
               '24 hours post fertilization': 'TDR124'}
-celltypes = ['fast_muscle', 'neural_posterior', 'NMPs', 'PSM', 'somites', 'spinal_cord', 'tail_bud']
+celltypes = ['neural_posterior', 'NMPs', 'PSM', 'somites', 'spinal_cord', 'tail_bud']
 celltype = st_setup(celltypes)
+st.markdown(f'## {celltype}')
 fig = make_figure(celltype, timepoints)
 st.plotly_chart(fig, config=save_config())
