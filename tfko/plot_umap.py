@@ -172,7 +172,7 @@ def plot_cells(knockouts: list[str], timepoint: str) -> go.Figure:
         subplot_titles=[f"{ko}" for ko in knockouts],
         shared_xaxes=True,
         shared_yaxes=True,
-        vertical_spacing=0.05,
+        vertical_spacing=0,
         )
     
     # Generate plot for each knockout
@@ -210,7 +210,7 @@ def plot_cells(knockouts: list[str], timepoint: str) -> go.Figure:
 
     # Scale height and width with number of knockouts
     height = 600 * len(knockouts)
-    fig.update_layout(height=height, width=1000)
+    fig.update_layout(height=height, width=1000, margin=dict(l=10, r=10, t=20, b=0))
 
     return fig
 
@@ -231,8 +231,20 @@ def st_setup(timepoints: list[str]) -> str:
             ' colored by their cell type. We also plot the metacells (SEACells), depicted as larger points, colored by their most' \
             ' prevalent cell type. The arrows represent the transition probabilities of the metacells given the transcription factor' \
             ' knockout')
-    st.write('You can select the time point and knockouts to display using the sidebar on the left.')
     st.sidebar.markdown('# Settings')
+
+    # Remove extra space at top of the page
+    st.markdown(
+    """
+    <style>
+        /* Remove padding from main block */
+        .block-container {
+            padding-top: 2rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+    )
 
     # Initialize drop down boxes
     if "selectboxes" not in st.session_state:
@@ -285,6 +297,4 @@ for key in st.session_state.selectboxes:
     )
     selected_knockouts.append(st.session_state[key])
 fig = plot_cells(selected_knockouts, timepoints[timepoint])
-
-# Display plot in middle of page
-st.plotly_chart(fig)
+st.plotly_chart(fig, use_container_width=True)

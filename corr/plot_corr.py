@@ -27,7 +27,19 @@ def st_setup(gene_names: 'list[str]'):
     st.write('For each time point, we plot plot time-resolved scatter plots of ATAC (x-axis) and RNA expression (y-axis) ' \
              'for any gene. Each point represents a metacell (SEACell), colored by cell type. The correlation between ' \
               'chromatin accessbility and gene expression is also calculated for each time point.')
-    st.write('You can add multiple genes to compare them side by side.')
+    
+    # Remove extra space at top of the page
+    st.markdown(
+    """
+    <style>
+        /* Remove padding from main block */
+        .block-container {
+            padding-top: 2rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+    )
 
     # Initialize drop down boxes
     if "selectboxes" not in st.session_state:
@@ -108,7 +120,7 @@ def plot_genes(gene: str, gene_dict: 'dict[str:sc.AnnData]') -> plt.Figure:
         expr_atac = gene_dict[gene][sample_id][1]
         colors = gene_dict[gene][sample_id][2]
 
-        # Calculate mutual information
+        # Calculate correlation
         if np.all(expr_rna == expr_rna[0]) or np.all(expr_atac== expr_atac[0]):
             corr_scores.append(np.nan)
         else:
@@ -130,6 +142,7 @@ def plot_genes(gene: str, gene_dict: 'dict[str:sc.AnnData]') -> plt.Figure:
                         text=type_colors,
                     )
         
+        # Update margins of the plot
         if np.max(expr_rna) > rna_max:
             rna_max = np.max(expr_rna)
         if np.max(expr_atac) > atac_max:
@@ -169,7 +182,7 @@ def main():
     # Plot each figure
     for gene in selected_genes:
         fig = plot_genes(gene, gene_dict)
-        st.markdown(f'# {gene}')
+        st.markdown(f'### {gene}')
         st.plotly_chart(fig, config=save_config())
 
 

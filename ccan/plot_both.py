@@ -285,4 +285,4 @@ def combined_plot(option: str) -> go.Figure:
         yaxis=dict(showgrid=False)      # Hide gridlines
     )
 
-    return fig 
+    return fig

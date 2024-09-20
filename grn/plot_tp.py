@@ -23,9 +23,21 @@ def st_setup(celltypes: list[str]) -> str:
     st.write('For each time point (hours post fertilization), we plot the CellOracle predicted GRNs for each cell type. \
              The GRNs are represented as a heatmap, with the transcription factors on the x-axis and the genes on the y-axis. \
              The color of each cell represents the strength of the interaction between the transcription factor and the gene, \
-             with red indicating activation and blue indicating repression, as predicted by CellOracle.')
-    st.write('You can select the cell type and time points to display using the sidebar on the left.')
+             with red indicating activation and blue indicating repression.')
     st.sidebar.markdown('# Settings')
+
+    # Remove extra space at top of the page
+    st.markdown(
+    """
+    <style>
+        /* Remove padding from main block */
+        .block-container {
+            padding-top: 2rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+    )
 
     # Initialize drop down boxes
     if "selectboxes" not in st.session_state:
@@ -93,7 +105,7 @@ def make_figure(celltype: str, timepoints: dict[str:str]):
         fig.update_yaxes(tickfont=dict(size=12), row=1, col=i+1, matches='y')
 
     # Figure layout
-    fig.update_layout(height=700, width=2000, showlegend=False)
+    fig.update_layout(height=500, width=2000, showlegend=False, margin=dict(l=0, r=0, t=35, b=0))
     fig.update_layout(coloraxis=dict(colorscale='RdBu_r'))
 
     return fig
@@ -107,6 +119,6 @@ timepoints = {'10 hours post fertilization': 'TDR126',
               '24 hours post fertilization': 'TDR124'}
 celltypes = ['neural_posterior', 'NMPs', 'PSM', 'somites', 'spinal_cord', 'tail_bud']
 celltype = st_setup(celltypes)
-st.markdown(f'## {celltype}')
+st.markdown(f'### {celltype}')
 fig = make_figure(celltype, timepoints)
 st.plotly_chart(fig, config=save_config())

@@ -48,11 +48,9 @@ def st_setup(gene_names: list[str]):
 
     st.set_page_config(layout="wide")
     st.title('Cis Co-Accessibility and Gene Track Plots')
-    st.write("For each gene, we plot the cis co-accessible peaks at different timepoints, as well as the gene track.\
-             The cis co-accessible peaks are represented along the chromosome on the x-axis, with the timepoints \
-             stacked from earliest to latest on the y-axis. The gene track shows the gene body where the blue regions \
-             represent the exons and the arrow beneath represents the direction of transcription. \
-            We also provide a link to the ZFIN page for each gene, as well as ZFIN's annotation of the gene, if available.")
+    st.write("For each gene, we plot the peaks and protein coding region. \
+              We also provide a link to the ZFIN for each gene, as well as ZFIN's annotation, if available.") \
+            
     st.sidebar.markdown('# Settings')
 
     # Initialize drop down box
@@ -62,6 +60,19 @@ def st_setup(gene_names: list[str]):
         'Select a gene to plot',
         gene_names,
         index=default
+    )
+
+    # Remove extra space at top of the page
+    st.markdown(
+    """
+    <style>
+        /* Remove padding from main block */
+        .block-container {
+            padding-top: 2rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
     )
     
     return option
@@ -81,14 +92,13 @@ def main():
     # Get gene info and plot gene track
     df = pl.read_csv('ccan/data/GRCz11.csv')
     chrom = df.filter(pl.col('gene_name') == 'myf5')['seqname'][0]
-    st.markdown(f'## {option} (chr{chrom})')
+    st.markdown(f'### {option} (chr{chrom})')
 
     # Display
     try:
         st.markdown(f"[(ZFIN) {mapping[option]}](https://zfin.org/{mapping[option]}): {info[option]}")
     except KeyError:
         st.write("No ZFIN information available.")
-    st.write('The plot below is an explorable figure. You can zoom in and out, pan, and hover over the data points to see more information.')
     fig  = combined_plot(option)
     
     # Create a checkbox to show/hide the plot legend
@@ -96,11 +106,15 @@ def main():
         fig = plot_legend(fig)  # Default is to show legend
         st.session_state.hide_legend = True
     hide_function = st.sidebar.checkbox('Hide Legend', value=False)
-    if hide_function:  # If activated, plot is regenerated without adding legend
+    
+    # If activated, plot is regenerated without adding legend
+    if hide_function:
         if st.session_state.hide_legend:
-            fig = combined_plot(option)
+            fig= combined_plot(option)
             st.session_state.hide_legend = False
-    else:  # If deactivated, legend is added to the plot
+    
+    # If deactivated, legend is added to the plot
+    else: 
         if not st.session_state.hide_legend:
             fig = plot_legend(fig)
             st.session_state.hide_legend = True

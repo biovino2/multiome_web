@@ -18,6 +18,19 @@ def st_setup():
     st.write('For all time points, we plot the perturbation scores of each transcription factor knockout for mesodermal and neuro-ectodermal cells. ' \
             'The perturbation score is a measure of how much the knockout influences the direction of the cell type transition.')
     
+    # Remove extra space at top of the page
+    st.markdown(
+    """
+    <style>
+        /* Remove padding from main block */
+        .block-container {
+            padding-top: 2rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+    )
+    
 
 def make_figure(timepoints: dict[str:str]) -> go.Figure:
     """Returns a plotly figure containing scatter plots of perturbation scores for each time point.
@@ -29,11 +42,17 @@ def make_figure(timepoints: dict[str:str]) -> go.Figure:
         fig (plotly.graph_objs.Figure): The plotly figure.
     """
 
-    fig = make_subplots(rows=2, cols=3, subplot_titles=list(timepoints.keys()))
+    fig = make_subplots(
+        rows=2,
+        cols=3,
+        subplot_titles=list(timepoints.keys()))
+
+    # Keep track of PS scores for every time point for each gene
+    #meso_scores: 'dict[dict[str, float]]' = {}  # ex. {meox1: {TDR118: 0.42, ...}, ...}
+    #ne_scores: 'dict[dict[str, float]]' = {}
 
     # Plot scatter plots for each timepoint
     for i, tp in enumerate(timepoints.values()):
-
         cos_sim = pd.read_csv(f'tfko/data/{tp}_sim.csv', index_col=0)
 
         # Subset mesoderm cells and compute perturbation score
@@ -59,19 +78,22 @@ def make_figure(timepoints: dict[str:str]) -> go.Figure:
             text=df_merged.index,
             showlegend=False
         )
-        fig.add_trace(scatter, row=(i//3)+1, col=(i%3)+1)
 
-    # Update layout
-    fig.update_layout(
-        margin=dict(l=10, r=10, t=70, b=0),
-        showlegend=False
-    )
+        # Add to figure, update hover info
+        fig.add_trace(scatter, row=(i//3)+1, col=(i%3)+1)
+        fig.data[-1].update(
+            hovertemplate='<b>TF</b>: %{text}<br><b>Mesoderm</b>: %{x}<br><b>Neuro-ectoderm</b>: %{y}',
+        hoverlabel=dict(namelength=0))
 
     # Update axes labels and titles
     for i in range (0, len(timepoints)):
         fig.update_xaxes(title='Mesoderm', row=i//3+1, col=i%3+1, range=[0.4, 0.80])
         fig.update_yaxes(title='Neuro-ectoderm', row=i//3+1, col=i%3+1, range=[0.4, 0.65])
-    fig.update_layout(width=1200, height=700)
+
+    # Update figure size
+    fig.update_layout(width=1200, height=550,
+        margin=dict(l=10, r=10, t=70, b=0),
+        showlegend=False )
 
     return fig
 
