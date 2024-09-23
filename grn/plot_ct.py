@@ -4,6 +4,7 @@ Ben Iovino  08/22/24    CZ-Biohub
 """
 
 import streamlit as st
+import sys
 from plot_grn import plot_grn, save_config
 from plotly.subplots import make_subplots
 
@@ -62,10 +63,11 @@ def st_setup(timepoints: list[str]) -> str:
     return timepoint
 
 
-def make_figure(timepoint: str, celltypes: 'list[str]'):
+def make_figure(path: str, timepoint: str, celltypes: 'list[str]'):
     """Returns a plotly figure containing a heatmap representing the GRN for each time point.
 
     Args:
+        path (str): The path to the data.
         timepoint (str): The time point to plot.
         celltypes (list[str]): The list of cell types.
 
@@ -95,7 +97,7 @@ def make_figure(timepoint: str, celltypes: 'list[str]'):
 
     # Generate heatmap for each subplot
     for i, celltype in enumerate(selected_celltypes):
-        plot = plot_grn(celltype, timepoint, 'celltype')
+        plot = plot_grn(path, celltype, timepoint, 'celltype')
         fig.add_trace(plot, row=1, col=i+1)
 
         # Update hover template and axis labels
@@ -112,6 +114,9 @@ def make_figure(timepoint: str, celltypes: 'list[str]'):
     return fig
 
 # Main
+arg: 'list[str]' = sys.argv[0].split('/')[:-1]
+path = '/'.join(arg) + '/data'
+
 timepoints = {'10 hours post fertilization': 'TDR126',
               '12 hours post fertilization': 'TDR127',
               '14 hours post fertilization': 'TDR128',
@@ -121,5 +126,5 @@ timepoints = {'10 hours post fertilization': 'TDR126',
 celltypes = ['neural_posterior', 'NMPs', 'PSM', 'somites', 'spinal_cord', 'tail_bud']
 timepoint = st_setup(list(timepoints.keys()))
 st.markdown(f'### {timepoint}')
-fig = make_figure(timepoints[timepoint], celltypes)
+fig = make_figure(path, timepoints[timepoint], celltypes)
 st.plotly_chart(fig, config=save_config())

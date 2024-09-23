@@ -7,18 +7,19 @@ import plotly.graph_objects as go
 import polars as pl
 
 
-def get_data(option: str) -> 'tuple[pl.DataFrame, pl.DataFrame]':
+def get_data(path: str, option: str) -> 'tuple[pl.DataFrame, pl.DataFrame]':
     """Returns subset of data for the gene of interest.
 
     Args:
+        path (str): The path to the data.
         option (str): The gene of interest.
 
     Returns:
         tuple: A tuple containing the gene data and ATAC data
     """
 
-    genes = pl.read_csv('ccan/data/GRCz11.csv')
-    access = pl.read_csv('ccan/data/access.csv')
+    genes = pl.read_csv(f'{path}/GRCz11.csv')
+    access = pl.read_csv(f'{path}/access.csv')
     gene_data = genes.filter(pl.col('gene_name') == option)
     atac_data = access.filter(pl.col('gene_name') == option)
 
@@ -250,17 +251,18 @@ def plot_legend(fig: go.Figure) -> go.Figure:
     return fig
 
 
-def combined_plot(option: str) -> go.Figure:
+def combined_plot(path: str, option: str) -> go.Figure:
     """Returns a plotly figure with the gene track and ATAC data for the gene of interest.
 
     Args:
+        path (str): The path to the data.
         option (str): The gene of interest.
 
     Returns:
         go.Figure: A plotly figure.
     """
 
-    gene_data, atac_data = get_data(option)
+    gene_data, atac_data = get_data(path, option)
 
     # Find minimum and maximum positions between both dataframes
     start = min(gene_data['start'].min(), atac_data['start'].min())

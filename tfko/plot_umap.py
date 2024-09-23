@@ -8,6 +8,7 @@ from plotly.subplots import make_subplots
 import pandas as pd
 import scanpy as sc
 import streamlit as st
+import sys
 import numpy as np
 
 
@@ -143,11 +144,12 @@ def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarr
     return fig
 
 
-def plot_cells(knockouts: list[str], timepoint: str) -> go.Figure:
+def plot_cells(path: str, knockouts: list[str], timepoint: str) -> go.Figure:
     """Returns a plotly figure with single cells and metacells, along with metacell transition
     probabilities given the TF knockout, plotted on UMAP coordinates
 
     Args:
+        path (str): The path to the data.
         knockouts (list): The list of TF knockouts.
         timepoint (str): The time point.
 
@@ -183,10 +185,10 @@ def plot_cells(knockouts: list[str], timepoint: str) -> go.Figure:
             knockout = 'WT_global_nmps'
 
         # Load data
-        adata = sc.read_h5ad(f"tfko/data/{timepoint}_KO.h5ad")
+        adata = sc.read_h5ad(f"{path}/{timepoint}_KO.h5ad")
         adata.obs['SEACell'] = adata.obs['SEACell'].astype('object')
         adata.obs['manual_annotation'] = adata.obs['manual_annotation'].astype('object')
-        X_metacell, V_metacell = np.load(f"tfko/data/metacells/{timepoint}_{knockout}_metacells.npz").values()
+        X_metacell, V_metacell = np.load(f"{path}/metacells/{timepoint}_{knockout}_metacells.npz").values()
     
         # Prepare data for plotting
         umap_coords = pd.DataFrame(adata.obsm['X_umap_aligned'], columns=[0, 1], index=adata.obs_names)
@@ -270,7 +272,10 @@ def st_setup(timepoints: list[str]) -> str:
 
 
 # Main
-with open('tfko/data/common_tfs.txt', 'r') as file:
+arg: 'list[str]' = sys.argv[0].split('/')[:-1]
+path = '/'.join(arg) + '/data'
+
+with open(f'{path}/common_tfs.txt', 'r') as file:
     tf_names = file.read().splitlines()
 tf_names.append('Control (No Knockout)')
 
@@ -296,5 +301,5 @@ for key in st.session_state.selectboxes:
         key=key
     )
     selected_knockouts.append(st.session_state[key])
-fig = plot_cells(selected_knockouts, timepoints[timepoint])
+fig = plot_cells(path, selected_knockouts, timepoints[timepoint])
 st.plotly_chart(fig, use_container_width=True)

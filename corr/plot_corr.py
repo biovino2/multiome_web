@@ -11,6 +11,7 @@ import numpy as np
 import scanpy as sc
 from scipy.stats import pearsonr
 import streamlit as st
+import sys
 from preprocess import define_color_dict
 
 
@@ -175,8 +176,12 @@ def main():
     """
     """
 
+    # Get path to data from command line
+    arg: 'list[str]' = sys.argv[0].split('/')[:-1]
+    path = '/'.join(arg) + '/data'
+
     # Load data and set up streamlit
-    gene_dict = pkl.load(open("corr/data/gene_dict.pkl", "rb"))
+    gene_dict = pkl.load(open(f"{path}/gene_dict.pkl", "rb"))
     gene_names = list(gene_dict.keys())
     selected_genes = st_setup(gene_names)
 

@@ -4,12 +4,16 @@ Ben Iovino  08/06/24    CZ-Biohub
 """
 
 import streamlit as st
+import sys
 import polars as pl
 from plot_both import combined_plot
 
 
-def load_zfin_info() -> 'tuple[dict, dict]':
+def load_zfin_info(path: str) -> 'tuple[dict, dict]':
     """Loads ZFIN gene name and information from file.
+
+    Args:
+        path (str): Path to the ZFIN data.
     
     Returns:
         dict: A dictionary mapping gene names to ZFIN names.
@@ -18,7 +22,7 @@ def load_zfin_info() -> 'tuple[dict, dict]':
 
     # Gene name mapping to ZFIN ID
     mapping: dict[str, str] = {}
-    with open('ccan/data/zfin/mapping.txt', 'r') as file:
+    with open(f'{path}/zfin/mapping.txt', 'r') as file:
         for line in file:
             line = line.strip().split()
             try:
@@ -28,7 +32,7 @@ def load_zfin_info() -> 'tuple[dict, dict]':
 
     # Gene information from ZFIN
     info: dict[str, str] = {}
-    with open('ccan/data/zfin/info.txt', 'r') as file:
+    with open(f'{path}/zfin/info.txt', 'r') as file:
         for line in file:
             line = line.split('\t')
             try:
@@ -82,15 +86,20 @@ def main():
     """
     """
 
-    df = pl.read_csv('ccan/data/access.csv')
+    # Get path to data from command line
+    arg: 'list[str]' = sys.argv[0].split('/')[:-1]
+    path = '/'.join(arg) + '/data'
+
+    # Read in data
+    df = pl.read_csv(f'{path}/access.csv')
     gene_names = [gene[0] for gene in df.select('gene_name').rows()]
-    mapping, info = load_zfin_info()
+    mapping, info = load_zfin_info(path)
 
     # Set up streamlit, get input
     option = st_setup(gene_names) 
 
     # Get gene info and plot gene track
-    df = pl.read_csv('ccan/data/GRCz11.csv')
+    df = pl.read_csv(f'{path}/GRCz11.csv')
     chrom = df.filter(pl.col('gene_name') == 'myf5')['seqname'][0]
     st.markdown(f'### {option} (chr{chrom})')
 
@@ -99,7 +108,7 @@ def main():
         st.markdown(f"[(ZFIN) {mapping[option]}](https://zfin.org/{mapping[option]}): {info[option]}")
     except KeyError:
         st.write("No ZFIN information available.")
-    fig  = combined_plot(option)
+    fig  = combined_plot(path, option)
     st.plotly_chart(fig)
 
 

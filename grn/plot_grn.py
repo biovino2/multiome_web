@@ -8,10 +8,11 @@ import plotly.graph_objects as go
 import streamlit as st
 
 
-def load_data(celltype: str, timepoint: str, control: str) -> 'pd.DataFrame':
+def load_data(path: str, celltype: str, timepoint: str, control: str) -> 'pd.DataFrame':
     """Returns counts for celltype at a timepoint.
 
     Args:
+        path (str): The path to the data.
         celltype (str): The celltype to load.
         timepoint (str): The timepoint to load.
         control (str): The control variable (time point or cell type)
@@ -19,8 +20,6 @@ def load_data(celltype: str, timepoint: str, control: str) -> 'pd.DataFrame':
     Returns:
         df_counts (pd.DataFrame): The counts for the celltype at the timepoint.
     """
-
-    path = 'grn/data'
 
     # Plotting multiple time points for each cell type
     if control == 'timepoint':
@@ -36,10 +35,11 @@ def load_data(celltype: str, timepoint: str, control: str) -> 'pd.DataFrame':
     return df_counts
 
 
-def plot_grn(celltype: str, timepoint: str, control: str) -> 'go.Heatmap':
+def plot_grn(path: str, celltype: str, timepoint: str, control: str) -> 'go.Heatmap':
     """Returns a plotly Heatmap of the GRN.
 
     Args:
+        path (str): The path to the data.
         celltype (str): The celltype to plot.
         timepoint (str): The timepoint to plot.
         control (str): The control variable (time point or cell type)
@@ -49,7 +49,7 @@ def plot_grn(celltype: str, timepoint: str, control: str) -> 'go.Heatmap':
     """
 
     # Create heatmap directly using graph_objects
-    df_counts = load_data(celltype, timepoint, control)
+    df_counts = load_data(path, celltype, timepoint, control)
     fig = go.Heatmap(
         z=df_counts.values,
         x=df_counts.columns,

@@ -7,6 +7,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
+import sys
 
 
 def st_setup():
@@ -32,10 +33,11 @@ def st_setup():
     )
     
 
-def make_figure(timepoints: dict[str:str], inv_tp: dict[str:str]) -> go.Figure:
+def make_figure(path: str, timepoints: dict[str:str], inv_tp: dict[str:str]) -> go.Figure:
     """Returns a plotly figure containing scatter plots of perturbation scores for each time point.
 
     Args:
+        path (str): The path to the data.
         timepoints (dict[str:str]): The dictionary of time points.
         inv_tp (dict[str:str]): The inverted dictionary of time points.
     Returns:
@@ -53,7 +55,7 @@ def make_figure(timepoints: dict[str:str], inv_tp: dict[str:str]) -> go.Figure:
 
     # Plot scatter plots for each timepoint
     for i, tp in enumerate(timepoints.values()):
-        cos_sim = pd.read_csv(f'tfko/data/{tp}_sim.csv', index_col=0)
+        cos_sim = pd.read_csv(f'{path}/{tp}_sim.csv', index_col=0)
 
         # Subset mesoderm cells and compute perturbation score
         df_meso = cos_sim[cos_sim.celltype.isin(["PSM","fast_muscle","somites"])].drop(columns="celltype")
@@ -110,6 +112,9 @@ def make_figure(timepoints: dict[str:str], inv_tp: dict[str:str]) -> go.Figure:
 
 
 # Main
+arg: 'list[str]' = sys.argv[0].split('/')[:-1]
+path = '/'.join(arg) + '/data'
+
 timepoints = {'10 hours post fertilization': 'TDR126',
                 '12 hours post fertilization': 'TDR127',
                 '14 hours post fertilization': 'TDR128',
@@ -123,7 +128,7 @@ inv_tp = {'TDR126': '10 hpf',
             'TDR125': '19 hpf',
             'TDR124': '24 hpf'}
 st_setup()
-fig, meso_df, ne_df = make_figure(timepoints, inv_tp)
+fig, meso_df, ne_df = make_figure(path, timepoints, inv_tp)
 st.plotly_chart(fig)
 
 # Add two checkboxes to display dataframes, one in each column
