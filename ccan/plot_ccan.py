@@ -5,7 +5,7 @@ Ben Iovino  08/06/24    CZ-Biohub
 
 import streamlit as st
 import polars as pl
-from plot_both import combined_plot, plot_legend
+from plot_both import combined_plot
 
 
 def load_zfin_info() -> 'tuple[dict, dict]':
@@ -100,25 +100,6 @@ def main():
     except KeyError:
         st.write("No ZFIN information available.")
     fig  = combined_plot(option)
-    
-    # Create a checkbox to show/hide the plot legend
-    if 'hide_legend' not in st.session_state:
-        fig = plot_legend(fig)  # Default is to show legend
-        st.session_state.hide_legend = True
-    hide_function = st.sidebar.checkbox('Hide Legend', value=False)
-    
-    # If activated, plot is regenerated without adding legend
-    if hide_function:
-        if st.session_state.hide_legend:
-            fig= combined_plot(option)
-            st.session_state.hide_legend = False
-    
-    # If deactivated, legend is added to the plot
-    else: 
-        if not st.session_state.hide_legend:
-            fig = plot_legend(fig)
-            st.session_state.hide_legend = True
-
     st.plotly_chart(fig)
 
 

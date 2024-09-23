@@ -154,7 +154,8 @@ def plot_genes(gene: str, gene_dict: 'dict[str:sc.AnnData]') -> plt.Figure:
     # Update layout
     fig.update_layout(
         margin=dict(l=10, r=10, t=70, b=0),
-        showlegend=False
+        showlegend=False,
+        xaxis=dict(title_standoff=5)
     )
 
     # Update titles
@@ -164,8 +165,8 @@ def plot_genes(gene: str, gene_dict: 'dict[str:sc.AnnData]') -> plt.Figure:
 
     # Update axes labels and titles
     for i in range (0, len(corr_scores)):
-        fig.update_xaxes(title='ATAC', row=i//3+1, col=i%3+1, title_font=dict(size=10), range=[0, atac_max])
-        fig.update_yaxes(title='RNA', row=i//3+1, col=i%3+1, title_font=dict(size=10), range=[0, rna_max])
+        fig.update_xaxes(title='ATAC', row=i//3+1, col=i%3+1, title_font=dict(size=10), range=[0, atac_max], title_standoff=4)
+        fig.update_yaxes(title='RNA', row=i//3+1, col=i%3+1, title_font=dict(size=10), range=[0, rna_max], title_standoff=5)
 
     return fig
 

@@ -102,11 +102,11 @@ def make_figure(timepoint: str, celltypes: 'list[str]'):
         fig.data[-1].update(
             hovertemplate='TF: %{x}<br>Gene: %{y}<br>Strength: %{z}<extra></extra>',
         hoverlabel=dict(namelength=0))
-        fig.update_xaxes(tickfont=dict(size=12), row=1, col=i+1)
-        fig.update_yaxes(tickfont=dict(size=12), row=1, col=i+1)
+        fig.update_xaxes(tickfont=dict(size=12), row=1, col=i+1, matches='x')
+        fig.update_yaxes(tickfont=dict(size=12), row=1, col=i+1, matches='y')
 
     # Figure layout
-    fig.update_layout(height=500, width=2000, showlegend=False, margin=dict(l=0, r=0, t=35, b=0))
+    fig.update_layout(height=500, width=2000, showlegend=False, margin=dict(l=0, r=0, t=50, b=0))
     fig.update_layout(coloraxis=dict(colorscale='RdBu_r'))
 
     return fig

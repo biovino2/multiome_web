@@ -32,12 +32,12 @@ def st_setup():
     )
     
 
-def make_figure(timepoints: dict[str:str]) -> go.Figure:
+def make_figure(timepoints: dict[str:str], inv_tp: dict[str:str]) -> go.Figure:
     """Returns a plotly figure containing scatter plots of perturbation scores for each time point.
 
     Args:
         timepoints (dict[str:str]): The dictionary of time points.
-
+        inv_tp (dict[str:str]): The inverted dictionary of time points.
     Returns:
         fig (plotly.graph_objs.Figure): The plotly figure.
     """
@@ -48,8 +48,8 @@ def make_figure(timepoints: dict[str:str]) -> go.Figure:
         subplot_titles=list(timepoints.keys()))
 
     # Keep track of PS scores for every time point for each gene
-    #meso_scores: 'dict[dict[str, float]]' = {}  # ex. {meox1: {TDR118: 0.42, ...}, ...}
-    #ne_scores: 'dict[dict[str, float]]' = {}
+    meso_scores: 'dict[dict[str, float]]' = {}  # ex. {meox1: {TDR118: 0.42, ...}, ...}
+    ne_scores: 'dict[dict[str, float]]' = {}
 
     # Plot scatter plots for each timepoint
     for i, tp in enumerate(timepoints.values()):
@@ -67,6 +67,13 @@ def make_figure(timepoints: dict[str:str]) -> go.Figure:
 
         # Merge dataframes
         df_merged = df_meso_avg.to_frame(name="meso").join(df_ne_avg.to_frame(name="ne"))
+
+        # Add genes to dictionary
+        for gene in df_merged.index:
+            meso_scores[inv_tp[tp]] = meso_scores.get(inv_tp[tp], {})
+            ne_scores[inv_tp[tp]] = ne_scores.get(inv_tp[tp], {})
+            meso_scores[inv_tp[tp]][gene] = df_merged.loc[gene, "meso"]
+            ne_scores[inv_tp[tp]][gene] = df_merged.loc[gene, "ne"]
 
         # Scatter plot
         scatter = go.Scatter(
@@ -94,8 +101,12 @@ def make_figure(timepoints: dict[str:str]) -> go.Figure:
     fig.update_layout(width=1200, height=550,
         margin=dict(l=10, r=10, t=70, b=0),
         showlegend=False )
+    
+    # Convert dictionary to dataframe
+    meso_df = pd.DataFrame.from_dict(meso_scores)
+    ne_df = pd.DataFrame.from_dict(ne_scores)
 
-    return fig
+    return fig, meso_df, ne_df
 
 
 # Main
@@ -105,6 +116,21 @@ timepoints = {'10 hours post fertilization': 'TDR126',
                 '16 hours post fertilization': 'TDR118',
                 '19 hours post fertilization': 'TDR125',
                 '24 hours post fertilization': 'TDR124'}
+inv_tp = {'TDR126': '10 hpf',
+            'TDR127': '12 hpf',
+            'TDR128': '14 hpf',
+            'TDR118': '16 hpf',
+            'TDR125': '19 hpf',
+            'TDR124': '24 hpf'}
 st_setup()
-fig = make_figure(timepoints)
+fig, meso_df, ne_df = make_figure(timepoints, inv_tp)
 st.plotly_chart(fig)
+
+# Add two checkboxes to display dataframes, one in each column
+meso, ne = st.columns([1, 1])
+with meso:
+    if st.checkbox('Show mesoderm perturbation scores'):
+        st.dataframe(meso_df)
+with ne:
+    if st.checkbox('Show neuro-ectoderm perturbation scores'):
+        st.dataframe(ne_df)

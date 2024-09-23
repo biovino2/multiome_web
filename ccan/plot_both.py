@@ -270,6 +270,7 @@ def combined_plot(option: str) -> go.Figure:
     fig = plot_genomic_region(start, end)
     fig = plot_gene(fig, gene_data, start, end)
     fig = plot_atac(fig, atac_data)
+    fig = plot_legend(fig)
 
     # Auto scale both axes to fit the data
     fig['layout']['yaxis'].update(autorange=True)
