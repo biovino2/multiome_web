@@ -4,7 +4,6 @@ Ben Iovino  09/05/24    CZ-Biohub
 """
 
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import pandas as pd
 import scanpy as sc
 import streamlit as st
@@ -12,10 +11,28 @@ import sys
 import numpy as np
 
 
-def plot_single_cells(cell_colors: 'dict[str, str]', umap_data: pd.DataFrame) -> go.Figure:
+def map_ko(name: str) -> str:
+    """Changes name of control. Lazy solution to avoid changing all the names in preprocessing.
+
+    Args:
+        name (str): The name of the knockout.
+
+    Returns:
+        str: The new knockout name.
+    """
+
+    if name == 'WT_global_nmps':
+        return 'Control (No Knockout)'
+    if name == 'Control (No Knockout)':
+        return 'WT_global_nmps'
+    return name
+
+
+def plot_single_cells(fig: go.Figure, cell_colors: 'dict[str, str]', umap_data: pd.DataFrame) -> go.Figure:
     """Returns a scatter plot containing single cells mapped in UMAP space.
 
     Args:
+        fig (go.Figure): The plotly figure object.
         cell_colors (dict): The color codes for cell types.
         umap_dat (pd.DataFrame): The df containing UMAP coordinates, SEACell, and cell type info.
 
@@ -23,7 +40,6 @@ def plot_single_cells(cell_colors: 'dict[str, str]', umap_data: pd.DataFrame) ->
         go.Figure: A plotly figure.
     """
 
-    fig = go.Figure()
     for cell_type, color in cell_colors.items():
         filtered_data = umap_data[umap_data['celltype'] == cell_type]
         fig.add_trace(go.Scatter(
@@ -73,7 +89,7 @@ def plot_meta_cells(fig: go.Figure, cell_colors: 'dict[str, str]', umap_data: pd
     return fig
 
 
-def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarray, ref: int) -> go.Figure:
+def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarray, color: str) -> go.Figure:
     """Returns a scatter plot containing arrows representing the transition probabilities of
     metacells in UMAP space.
 
@@ -81,7 +97,7 @@ def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarr
         fig (go.Figure): The plotly figure object.
         X_metacell (np.ndarray): The average UMAP position of the metacells.
         V_metacell (np.ndarray): The average transition vector of the metacells.
-        ref (int): The reference point.
+        color (str): The color of the arrows.
 
     Returns:
         go.Figure: A plotly figure.
@@ -128,7 +144,8 @@ def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarr
         x=lines_x, 
         y=lines_y,
         mode='lines',
-        line=dict(color='black', width=2),
+        line=dict(color=color, width=2),
+        hoverinfo='none',
         showlegend=False
     ))
     
@@ -137,7 +154,8 @@ def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarr
         x=arrowheads_x,
         y=arrowheads_y,
         mode='lines',
-        line=dict(color='black', width=2),
+        line=dict(color=color, width=2),
+        hoverinfo='none',
         showlegend=False
     ))
 
@@ -167,52 +185,67 @@ def plot_cells(path: str, knockouts: list[str], timepoint: str) -> go.Figure:
         'tail_bud': '#7570b3'
     }
 
-    # Create figure (subplots)
-    fig = make_subplots(
-        rows=len(knockouts),
-        cols=1,
-        subplot_titles=[f"{ko}" for ko in knockouts],
-        shared_xaxes=True,
-        shared_yaxes=True,
-        vertical_spacing=0,
-        )
-    
-    # Generate plot for each knockout
-    for i, knockout in enumerate(knockouts):
+    arrow_colors: 'dict[str, str]' = {
+        0: '#000000',
+        1: '#FF0000',
+        2: '#FFFF00',
+        3: '#00FFFF',
+        4: '#FF00FF',
+    }
 
-        # Map control to WT_global_nmps (pretty hacky)
-        if knockout == 'Control (No Knockout)':
-            knockout = 'WT_global_nmps'
+    # Load cell/metacell data
+    adata = sc.read_h5ad(f"{path}/{timepoint}_KO.h5ad")
+    adata.obs['SEACell'] = adata.obs['SEACell'].astype('object')
+    adata.obs['manual_annotation'] = adata.obs['manual_annotation'].astype('object')
 
-        # Load data
-        adata = sc.read_h5ad(f"{path}/{timepoint}_KO.h5ad")
-        adata.obs['SEACell'] = adata.obs['SEACell'].astype('object')
-        adata.obs['manual_annotation'] = adata.obs['manual_annotation'].astype('object')
-        X_metacell, V_metacell = np.load(f"{path}/metacells/{timepoint}_{knockout}_metacells.npz").values()
-    
-        # Prepare data for plotting
-        umap_coords = pd.DataFrame(adata.obsm['X_umap_aligned'], columns=[0, 1], index=adata.obs_names)
-        umap_data = umap_coords.join(adata.obs[['SEACell', 'manual_annotation']])
-        umap_data = umap_data.rename(columns={'manual_annotation': 'celltype'})
+    # Prepare data for plotting
+    umap_coords = pd.DataFrame(adata.obsm['X_umap_aligned'], columns=[0, 1], index=adata.obs_names)
+    umap_data = umap_coords.join(adata.obs[['SEACell', 'manual_annotation']])
+    umap_data = umap_data.rename(columns={'manual_annotation': 'celltype'})
 
-        # Plot each component
-        plot = plot_single_cells(cell_colors, umap_data)
-        plot = plot_meta_cells(plot, cell_colors, umap_data)
-        plot = plot_trans_vecs(plot, X_metacell, V_metacell, i+1)
+    # Plot cells and metacells
+    fig = go.Figure()
+    fig = plot_single_cells(fig, cell_colors, umap_data)
+    fig = plot_meta_cells(fig, cell_colors, umap_data)
 
-        # Add plot to figure
-        for trace in plot.data:
-            fig.add_trace(trace, row=i+1, col=1)
-            fig.update_xaxes(row=i+1, col=1, matches='x',
-                            showticklabels=False, showgrid=False, zeroline=False)
-            fig.update_yaxes(row=i+1, col=1, matches='y',
-                            showticklabels=False, showgrid=False, zeroline=False)
-        for annotation in plot.layout.annotations:
-            fig.add_annotation(annotation, row=i+1, col=1)
+    # Plot transition vectors for each knockout
+    for i, ko in enumerate(knockouts):
+        ko = map_ko(ko)
 
-    # Scale height and width with number of knockouts
-    height = 600 * len(knockouts)
-    fig.update_layout(height=height, width=1000, margin=dict(l=10, r=10, t=20, b=0))
+        # Load and plot transition vectors
+        X_metacell, V_metacell = np.load(f"{path}/metacells/{timepoint}_{ko}_metacells.npz").values()
+        fig = plot_trans_vecs(fig, X_metacell, V_metacell, arrow_colors[i])
+        fig = plot_legend(fig, arrow_colors, i, map_ko(ko))
+
+    # Update layout
+    fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False)
+    fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False)
+    fig.update_layout(height=550, width=1000, margin=dict(l=10, r=10, t=20, b=0))
+
+    return fig
+
+
+def plot_legend(fig: go.Figure, arrow_colors: 'dict[str, str]', num_ko: int, knockout: str) -> go.Figure:
+    """Returns figure with legend for arrow colors.
+
+    Args:
+        fig (go.Figure): The plotly figure object.
+        arrow_colors (dict): The color codes for arrows.
+        num_ko (int): The number of knockouts plotted.
+        knockout (str): The knockout plotted.
+
+    Returns:
+        go.Figure: A plotly figure.
+    """
+
+    fig.add_trace(go.Scatter(
+        x=[None],
+        y=[None],
+        mode='markers',
+        marker=dict(color=arrow_colors[num_ko], size=10),
+        showlegend=True,
+        name=knockout
+    ))
 
     return fig
 
@@ -232,7 +265,7 @@ def st_setup(timepoints: list[str]) -> str:
     st.write('For any time point (hours post fertilization), we plot the mesodermal and neuro-ectodermal cells in UMAP space,' \
             ' colored by their cell type. We also plot the metacells (SEACells), depicted as larger points, colored by their most' \
             ' prevalent cell type. The arrows represent the transition probabilities of the metacells given the transcription factor' \
-            ' knockout')
+            ' knockout.')
     st.sidebar.markdown('# Settings')
 
     # Remove extra space at top of the page
@@ -258,6 +291,8 @@ def st_setup(timepoints: list[str]) -> str:
         with add:
             if st.button('Add Knockout'):
                 st.session_state.selectboxes.append(len(st.session_state.selectboxes))
+            if len(st.session_state.selectboxes) > 5:  # Max 5 knockouts
+                st.session_state.selectboxes.pop()
         with reset:
             if st.button('Reset'):
                 st.session_state.selectboxes = [0]
@@ -280,7 +315,6 @@ with open(f'{path}/common_tfs.txt', 'r') as file:
 tf_names.append('Control (No Knockout)')
 
 # Set up streamlit
-timepoint = 'TDR125'
 timepoints = {'10 hours post fertilization': 'TDR126',
                 '12 hours post fertilization': 'TDR127',
                 '14 hours post fertilization': 'TDR128',
@@ -290,7 +324,7 @@ timepoints = {'10 hours post fertilization': 'TDR126',
 timepoint = st_setup(list(timepoints.keys()))
 st.markdown(f'### {timepoint}')
 
-# Generate plot
+# Generate plot based on selected knockouts
 selected_knockouts = []
 default = 'Control (No Knockout)'
 for key in st.session_state.selectboxes:
