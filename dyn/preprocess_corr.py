@@ -54,8 +54,12 @@ def define_color_dict() -> 'dict[str:str]':
     return cell_type_color_dict
 
 
-def get_datasets(datasets: 'list[str]') -> 'dict[str:sc.AnnData]':
+def get_datasets(path: str, datasets: 'list[str]') -> 'dict[str:sc.AnnData]':
     """Returns a dictionary of adata objects for each dataset.
+
+    Args:
+        path (str): The path to the data.
+        datasets (list[str]): The list of dataset names.
 
     Returns:
         dict[str, sc.AnnData]: The dictionary of adata objects.
@@ -63,7 +67,6 @@ def get_datasets(datasets: 'list[str]') -> 'dict[str:sc.AnnData]':
 
     # Import all datasets (adata) and save in a dictionary
     dict_meta_ad = {}
-    path = "corr/data/"
     for data_id in datasets:
 
         # define the sample_id (withou "reseq" in the handle)
@@ -157,13 +160,15 @@ def main():
     """
     """
 
+    path = 'dyn/data'
+
     # Get meta dictionary containing all datasets
     datasets = ['TDR126', 'TDR127', 'TDR128', 'TDR118reseq', 'TDR125reseq', 'TDR124reseq']
     dict_meta = get_datasets(datasets)
 
     # Get gene dictionary
     gene_dict = get_gene_dict(dict_meta)
-    pickle.dump(gene_dict, open("corr/data/gene_dict.pkl", "wb"))
+    pickle.dump(gene_dict, open(f"{path}/gene_dict.pkl", "wb"))
 
 
 if __name__ == "__main__":

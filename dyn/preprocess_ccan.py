@@ -210,7 +210,7 @@ def main():
     Comment out any parts that you don't need (particularly part 3, lots of downloads).
     """
 
-    path = 'ccan/data'
+    path = 'dyn/data'
     if not os.path.exists(path):
         os.mkdir(path)
 

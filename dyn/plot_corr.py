@@ -4,6 +4,7 @@ Ben Iovino  08/08/24    CZ-Biohub
 """
 
 import matplotlib.pyplot as plt
+import os
 import pickle as pkl
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -11,8 +12,7 @@ import numpy as np
 import scanpy as sc
 from scipy.stats import pearsonr
 import streamlit as st
-import sys
-from preprocess import define_color_dict
+from preprocess_corr import define_color_dict
 
 
 def st_setup() -> str:
@@ -234,37 +234,28 @@ def plot_genes(celltype: str, gene: str, gene_dict: 'dict[str:sc.AnnData]') -> p
     return fig
 
 
-def main():
-    """
-    """
+# Main
 
-    # Get path to data from command line
-    arg: 'list[str]' = sys.argv[0].split('/')[:-1]
-    path = '/'.join(arg) + '/data'
+# Load data and set up streamlit
+path = os.path.dirname(os.path.abspath(__file__))+'/data'
+gene_dict = pkl.load(open(f"{path}/gene_dict.pkl", "rb"))
+gene_names = list(gene_dict.keys())
+celltype = st_setup()
 
-    # Load data and set up streamlit
-    gene_dict = pkl.load(open(f"{path}/gene_dict.pkl", "rb"))
-    gene_names = list(gene_dict.keys())
-    celltype = st_setup()
+# Create selectboxes
+selected_genes = []
+default = gene_names.index('slc4a1a')
+for key in st.session_state.selectboxes:
+    st.sidebar.selectbox(
+        'Select a gene to plot',
+        gene_names,
+        key=key,
+        index=default
+    )
+selected_genes.append(st.session_state[key])
 
-    # Create selectboxes
-    selected_genes = []
-    default = gene_names.index('slc4a1a')
-    for key in st.session_state.selectboxes:
-        st.sidebar.selectbox(
-            'Select a gene to plot',
-            gene_names,
-            key=key,
-            index=default
-        )
-        selected_genes.append(st.session_state[key])
-
-    # Plot each figure
-    for gene in selected_genes:
-        fig = plot_genes(celltype, gene, gene_dict)
-        st.markdown(f'### {gene}')
-        st.plotly_chart(fig, config=save_config())
-
-
-if __name__ == "__main__":
-    main()
+# Plot each figure
+for gene in selected_genes:
+    fig = plot_genes(celltype, gene, gene_dict)
+    st.markdown(f'### {gene}')
+    st.plotly_chart(fig, config=save_config())

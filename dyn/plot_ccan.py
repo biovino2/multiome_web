@@ -1,8 +1,10 @@
-"""Creates single figure containing both ccan and gene track plot using plotly.
+"""Plots peaks and gene track using plotly, along with ZFIN information.
 
 Ben Iovino  08/27/24    CZ-Biohub
 """
 
+import os
+import streamlit as st
 import plotly.graph_objects as go
 import polars as pl
 
@@ -289,3 +291,101 @@ def combined_plot(path: str, option: str) -> go.Figure:
     )
 
     return fig
+
+
+def load_zfin_info(path: str) -> 'tuple[dict, dict]':
+    """Loads ZFIN gene name and information from file.
+
+    Args:
+        path (str): Path to the ZFIN data.
+    
+    Returns:
+        dict: A dictionary mapping gene names to ZFIN names.
+
+    """
+
+    # Gene name mapping to ZFIN ID
+    mapping: dict[str, str] = {}
+    with open(f'{path}/zfin/mapping.txt', 'r') as file:
+        for line in file:
+            line = line.strip().split()
+            try:
+                mapping[line[0]] = line[1]
+            except IndexError:
+                continue
+
+    # Gene information from ZFIN
+    info: dict[str, str] = {}
+    with open(f'{path}/zfin/info.txt', 'r') as file:
+        for line in file:
+            line = line.split('\t')
+            try:
+                info[line[0]] = line[1]
+            except IndexError:
+                continue
+
+    return mapping, info
+
+
+def st_setup(gene_names: list[str]):
+    """Initializes streamlit session.
+
+    Args:
+        gene_names (list): The list of gene names
+    """
+
+    st.set_page_config(layout="wide")
+    st.title('Cis Co-Accessibility and Gene Track Plots')
+    st.write("For each gene, we plot the peaks and protein coding region. \
+              We also provide a link to the ZFIN for each gene, as well as ZFIN's annotation, if available.") \
+            
+    st.sidebar.markdown('# Settings')
+
+    # Initialize drop down box
+    gene_names = list(set((gene_names)))  # .unique() from polars messes up select box, set instead
+    default = gene_names.index('myf5')
+    option = st.sidebar.selectbox(
+        'Select a gene to plot',
+        gene_names,
+        index=default
+    )
+
+    # Remove extra space at top of the page
+    st.markdown(
+    """
+    <style>
+        /* Remove padding from main block */
+        .block-container {
+            padding-top: 2rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+    )
+    
+    return option
+
+
+# Main
+
+# Read in data
+path = os.path.dirname(os.path.abspath(__file__))+'/data'
+df = pl.read_csv(f'{path}/access.csv')
+gene_names = [gene[0] for gene in df.select('gene_name').rows()]
+mapping, info = load_zfin_info(path)
+
+# Set up streamlit, get input
+option = st_setup(gene_names) 
+
+# Get gene info and plot gene track
+df = pl.read_csv(f'{path}/GRCz11.csv')
+chrom = df.filter(pl.col('gene_name') == 'myf5')['seqname'][0]
+st.markdown(f'### {option} (chr{chrom})')
+
+# Display
+try:
+    st.markdown(f"[(ZFIN) {mapping[option]}](https://zfin.org/{mapping[option]}): {info[option]}")
+except KeyError:
+    st.write("No ZFIN information available.")
+fig  = combined_plot(path, option)
+st.plotly_chart(fig)
