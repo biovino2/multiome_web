@@ -1,8 +1,6 @@
-ccan/__pycache__
-ccan/data/zfin/annotations
-corr/data/samples
-corr/__pycache__
-corr/settings.txt
+dyn/__pycache__
+dyn/data/samples
+dyn/data/gene_dict.pkl
 grn/__pycache__
 grn/data/links
 grn/settings.txt

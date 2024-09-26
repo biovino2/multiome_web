@@ -39,39 +39,16 @@ def plot_genomic_region(start: int, end: int) -> go.Figure:
         go.Figure: A plotly figure.
     """
 
-    # Create a line plot
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=[start, end],
-        y=[0, 0],
-        mode="lines",
-        hoverinfo='none',
-        line=dict(color="black", width=2),
-        showlegend=False
-    ))  
-
-    # Add x-ticks
-    tick_length = 0.015  # Increase this value to make ticks longer
-    tick_width = 1.25   # Thickness of the ticks
-    chromosome_ticks = list(range(start, end + 1, 5000))
-    for tick in chromosome_ticks:
-        fig.add_trace(go.Scatter(
-            x=[tick, tick],
-            y=[-tick_length / 2, tick_length / 2],  # Adjusted for longer ticks
-            mode="lines",
-            hoverinfo='text',
-            text=f"{tick // 1000} kbp",
-            line=dict(color="black", width=tick_width),  # Thicker ticks
-            showlegend=False
-        ))
 
     # Set x-axis ticks and labels
     fig.update_xaxes(
-        range=[start - 1, end + 1],
-        title="Genomic Coordinate (kbp)",
-        showgrid=False,
-        tickvals=chromosome_ticks,
-        ticktext=[f"{tick // 1000}" for tick in chromosome_ticks]
+        title="Genomic Coordinate (bp)",
+        autorange=True,
+        ticklen=10,
+        tickcolor='black',
+        showline=True,
+        tickformat=",.0f",
     )
 
     return fig
@@ -134,9 +111,9 @@ def plot_gene(fig: go.Figure, gene_data: pl.DataFrame, start: int, end: int) -> 
         ax = genomic_end
     fig.add_annotation(
             x=arrow,
-            y=0.07,
+            y=0.075,
             ax=ax,
-            ay=0.07,
+            ay=0.075,
             xref='x',
             yref='y',
             axref='x',
@@ -221,8 +198,8 @@ def plot_legend(fig: go.Figure) -> go.Figure:
                     'TDR118': '16 hours post fertilization',
                     'TDR125': '19 hours post fertilization',
                     'TDR124': '24 hours post fertilization'}
-    colors = {'TDR126': '#440154', 'TDR127': '#414487', 'TDR128': '#2A788E',
-               'TDR118': '#22A884', 'TDR125': '#7AD151', 'TDR124': '#FDE725'}
+    colors = {'TDR124': '#FDE725', 'TDR125': '#7AD151', 'TDR118': '#22A884',
+                    'TDR128': '#2A788E', 'TDR127': '#414487', 'TDR126': '#440154'}
 
     # Transcription direction
     fig.add_trace(go.Scatter(

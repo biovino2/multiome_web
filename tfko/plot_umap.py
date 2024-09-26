@@ -299,7 +299,7 @@ def st_setup(timepoints: list[str]) -> str:
 
     # Get timepoint to show
     timepoint = st.sidebar.selectbox(
-        'Select a time point to plot',
+        'Select time point',
         timepoints
     )
     
@@ -327,9 +327,9 @@ st.markdown(f'### {timepoint}')
 # Generate plot based on selected knockouts
 selected_knockouts = []
 default = 'Control (No Knockout)'
-for key in st.session_state.selectboxes:
+for i, key in enumerate(st.session_state.selectboxes):
     st.sidebar.selectbox(
-        'Select a knockout to plot',
+        f'Select knockout {i+1}',
         tf_names,
         index=tf_names.index(default),
         key=key

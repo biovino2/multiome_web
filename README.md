@@ -5,8 +5,8 @@ This repository contains several interactive figures that can be run on any mach
 You can install this repository with the following commands:
 
 ```
-git clone https://github.com/biovino2/streamlit
-cd streamlit/
+git clone https://github.com/biovino2/multiome_web
+cd multiome_web/
 conda env create -f env.yml
 conda activate multiome_web
 ```
@@ -20,18 +20,11 @@ If creating a conda environment does not work for you, try installing each packa
 - plotly==5.24.0
 - polars==1.6.0
 
-### CCAN plots
-Run the following command to run a streamlit instance that shows CCAN and gene track plots with your gene of choice:
+### Gene dynamics
+Run the following command to run a streamlit instance that shows a track plot and associated peaks for every gene, as well as correlation scatter plots between gene activity and expression:
 
 ```
-streamlit run ccan/plot_ccan.py
-```
-
-### Correlation plots
-Run the following command to run a streamlit instance that shows correlation scatterplots between ATAC and RNA expression data:
-
-```
-streamlit run corr/plot_corr.py
+streamlit run dyn/plot_dyn.py
 ```
 
 ### GRN plots

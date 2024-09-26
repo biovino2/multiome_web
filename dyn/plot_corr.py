@@ -245,9 +245,9 @@ celltype = st_setup()
 # Create selectboxes
 selected_genes = []
 default = gene_names.index('slc4a1a')
-for key in st.session_state.selectboxes:
+for i, key in enumerate(st.session_state.selectboxes):
     st.sidebar.selectbox(
-        'Select a gene to plot',
+        f'Select gene {i+1}',
         gene_names,
         key=key,
         index=default

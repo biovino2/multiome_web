@@ -56,7 +56,7 @@ def st_setup(celltypes: list[str]) -> str:
 
     # Get celltype
     celltype = st.sidebar.selectbox(
-        'Select a cell type to plot',
+        'Select cell type',
         celltypes
     )
 
@@ -79,7 +79,7 @@ def make_figure(path: str, celltype: str, timepoints: dict[str:str]):
     selected_timepoints = []
     for i, key in enumerate(st.session_state.selectboxes):
         st.sidebar.selectbox(
-            'Select a time point to plot',
+            f'Select time point {i+1}',
             list(timepoints.keys()),
             key=key
         )
