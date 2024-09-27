@@ -162,6 +162,43 @@ def plot_trans_vecs(fig: go.Figure, X_metacell: np.ndarray, V_metacell: np.ndarr
     return fig
 
 
+def plot_legend(fig: go.Figure, arrow_colors: 'dict[str, str]', num_ko: int, knockout: str, cell_colors: 'dict[str, str]') -> go.Figure:
+    """Returns figure with legend for arrow colors.
+
+    Args:
+        fig (go.Figure): The plotly figure object.
+        arrow_colors (dict): The color codes for arrows.
+        num_ko (int): The number of knockouts plotted.
+        knockout (str): The knockout plotted.
+        cell_colors (dict): The color codes for cell types.
+
+    Returns:
+        go.Figure: A plotly figure.
+    """
+
+    for cell_type, color in cell_colors.items():  # Legend for cell types
+        fig.add_trace(go.Scatter(
+            x=[None],
+            y=[None],
+            mode='markers',
+            marker=dict(color=color, size=10),
+            showlegend=True,
+            name=cell_type
+        ))
+
+    fig.add_trace(go.Scatter(  # Legend for arrow colors
+        x=[None],
+        y=[None],
+        mode='lines+markers',
+        marker=dict(color=arrow_colors[num_ko], size=10, symbol='triangle-right'),
+        line=dict(width=2),
+        showlegend=True,
+        name=knockout
+    ))
+
+    return fig
+
+
 def plot_cells(path: str, knockouts: list[str], timepoint: str) -> go.Figure:
     """Returns a plotly figure with single cells and metacells, along with metacell transition
     probabilities given the TF knockout, plotted on UMAP coordinates
@@ -215,37 +252,12 @@ def plot_cells(path: str, knockouts: list[str], timepoint: str) -> go.Figure:
         # Load and plot transition vectors
         X_metacell, V_metacell = np.load(f"{path}/metacells/{timepoint}_{ko}_metacells.npz").values()
         fig = plot_trans_vecs(fig, X_metacell, V_metacell, arrow_colors[i])
-        fig = plot_legend(fig, arrow_colors, i, map_ko(ko))
+        fig = plot_legend(fig, arrow_colors, i, map_ko(ko), cell_colors)
 
     # Update layout
     fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False)
     fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False)
     fig.update_layout(height=550, width=1000, margin=dict(l=10, r=10, t=20, b=0))
-
-    return fig
-
-
-def plot_legend(fig: go.Figure, arrow_colors: 'dict[str, str]', num_ko: int, knockout: str) -> go.Figure:
-    """Returns figure with legend for arrow colors.
-
-    Args:
-        fig (go.Figure): The plotly figure object.
-        arrow_colors (dict): The color codes for arrows.
-        num_ko (int): The number of knockouts plotted.
-        knockout (str): The knockout plotted.
-
-    Returns:
-        go.Figure: A plotly figure.
-    """
-
-    fig.add_trace(go.Scatter(
-        x=[None],
-        y=[None],
-        mode='markers',
-        marker=dict(color=arrow_colors[num_ko], size=10),
-        showlegend=True,
-        name=knockout
-    ))
 
     return fig
 
@@ -262,10 +274,10 @@ def st_setup(timepoints: list[str]) -> str:
 
     st.set_page_config(layout="wide")
     st.title('In-Silico Transcription Factor Knockout')
-    st.write('For any time point (hours post fertilization), we plot the mesodermal and neuro-ectodermal cells in UMAP space,' \
-            ' colored by their cell type. We also plot the metacells (SEACells), depicted as larger points, colored by their most' \
-            ' prevalent cell type. The arrows represent the transition probabilities of the metacells given the transcription factor' \
-            ' knockout.')
+    st.write('For each time point, we plot the mesodermal and neuro-ectodermal cells in UMAP space, \
+             colored by their cell type. We also plot the metacells (SEACells), depicted as larger \
+             points and colored by their most prevalent cell type. The arrows represent the transition \
+             probabilities of the metacells depending on the transcription factor knockout.')
     st.sidebar.markdown('# Settings')
 
     # Remove extra space at top of the page
@@ -312,7 +324,7 @@ path = '/'.join(arg) + '/data'
 
 with open(f'{path}/common_tfs.txt', 'r') as file:
     tf_names = file.read().splitlines()
-tf_names.append('Control (No Knockout)')
+tf_names.insert(0, 'Control (No Knockout)')
 
 # Set up streamlit
 timepoints = {'10 hours post fertilization': 'TDR126',

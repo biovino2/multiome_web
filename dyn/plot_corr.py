@@ -24,10 +24,12 @@ def st_setup() -> str:
 
     st.set_page_config(layout="wide")
     st.sidebar.markdown('# Settings')
-    st.title('ATAC and RNA Correlation')
-    st.write('For each time point, we plot plot time-resolved scatter plots of chromatin accessibility (x-axis) and gene expression (y-axis) ' \
-             'for any gene. Each point represents a metacell (SEACell), colored by cell type. The correlation between ' \
-              'chromatin accessbility and gene expression is also calculated for each time point.')
+    st.title('Gene Activity vs. Expression')
+    st.write('For each time point, we plot plot time-resolved scatter plots of gene activity, which \
+              represents the signal from the peaks within the gene body, and gene expression, which \
+             represents the normalized transcript counts. Each point represents a metacell (SEACell), \
+              colored by cell type. The correlation between gene activity and expression is also \
+              calculated.')
     
     # Remove extra space at top of the page
     st.markdown(

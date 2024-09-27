@@ -16,8 +16,11 @@ def st_setup():
 
     st.set_page_config(layout="wide")
     st.title('In-Silico Transcription Factor Knockout')
-    st.write('For all time points, we plot the perturbation scores of each transcription factor knockout for mesodermal and neuro-ectodermal cells. ' \
-            'The perturbation score is a measure of how much the knockout influences the direction of the cell type transition.')
+    st.write('For all time points, we plot the perturbation scores of each transcription factor \
+             knockout for mesodermal and neuro-ectodermal cells The perturbation score is a measure \
+             of how much the knockout influences the direction of the cell type transition, \
+             calculated as the cosine similarity between the wildtype and knockout cells, \
+             subtracted from one.')
     
     # Remove extra space at top of the page
     st.markdown(

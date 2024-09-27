@@ -48,8 +48,10 @@ def plot_grn(path: str, celltype: str, timepoint: str, control: str) -> 'go.Heat
         fig (go.Heatmap): The plotly figure.
     """
 
-    # Create heatmap directly using graph_objects
+    # Load data
     df_counts = load_data(path, celltype, timepoint, control)
+
+    # Create heatmap figure
     fig = go.Heatmap(
         z=df_counts.values,
         x=df_counts.columns,

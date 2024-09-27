@@ -313,8 +313,10 @@ def st_setup(gene_names: list[str]):
 
     st.set_page_config(layout="wide")
     st.title('Cis Co-Accessibility and Gene Track Plots')
-    st.write("For each gene, we plot the peaks and protein coding region. \
-              We also provide a link to the ZFIN for each gene, as well as ZFIN's annotation, if available.") \
+    st.write("For each gene, we plot the peaks and protein coding region. The peaks we show are \
+             highly correlated with the transcription start site of the selected gene. For more \
+             information about the gene and it's regulatory elements, we also provide links to \
+             ZFIN and Ensembl, if they are available.")
             
     st.sidebar.markdown('# Settings')
 
@@ -356,7 +358,7 @@ option = st_setup(gene_names)
 
 # Get gene info and plot gene track
 df = pl.read_csv(f'{path}/GRCz11.csv')
-chrom = df.filter(pl.col('gene_name') == 'myf5')['seqname'][0]
+chrom = df.filter(pl.col('gene_name') == option)['seqname'][0]
 st.markdown(f'### {option} (chr{chrom})')
 
 # Display
