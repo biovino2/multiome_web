@@ -312,7 +312,6 @@ def st_setup(gene_names: list[str]):
     st.sidebar.markdown('# Settings')
 
     # Initialize drop down box
-    gene_names = list(set((gene_names)))  # .unique() from polars messes up select box, set instead
     default = gene_names.index('myf5')
     option = st.sidebar.selectbox(
         'Select a gene to plot',
@@ -341,7 +340,7 @@ def st_setup(gene_names: list[str]):
 # Read in data
 path = os.path.dirname(os.path.abspath(__file__))+'/data'
 df = pl.read_csv(f'{path}/access.csv')
-gene_names = [gene[0] for gene in df.select('gene_name').rows()]
+gene_names = pl.read_csv(f'{path}/gene_names.csv')['names'].to_list()
 mapping, info = load_zfin_info(path)
 
 # Set up streamlit, get input

@@ -112,6 +112,24 @@ def parse_atac(path: str):
     df.write_csv(f'{path}/access.csv')
 
 
+def match_names(path: str, gene_names: 'list[str]'):
+    """Writes matching gene names to file.
+
+    Args:
+        path (str): The path to save the gene names.
+        gene_names (list): The list of gene names from the gtf file.
+    """
+
+    # Find shared names
+    peaks = pl.read_csv(f'{path}/access.csv')
+    peak_names = peaks['gene_name'].unique().to_list()
+    shared_names = [name for name in sorted(gene_names) if name in peak_names]
+
+    # Write to file
+    df = pl.DataFrame({"names": shared_names})
+    df.write_csv(f'{path}/gene_names.csv')
+
+
 def get_zfin_genes(path: str, gene_names: 'list[str]'):
     """Downloads ZFIN names and creates a mapping between gene names and ZFIN names.
 
@@ -210,15 +228,16 @@ def main():
     Comment out any parts that you don't need (particularly part 3, lots of downloads).
     """
 
-    path = 'dyn/data'
+    path = 'src/dyn/data'
     if not os.path.exists(path):
         os.mkdir(path)
 
     parse_atac(path)  # part 1
     gene_names = parse_gtf(path, 'GRCz11.gtf.gz')  # part 2
-    get_zfin_genes(path, gene_names)  # part 3
-    get_zfin_annotations(path)
-    parse_html(path)
+    match_names(path, gene_names)
+    #get_zfin_genes(path, gene_names)  # part 3
+    #get_zfin_annotations(path)
+    #parse_html(path)
 
 
 if __name__ == "__main__":
