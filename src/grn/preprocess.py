@@ -9,6 +9,7 @@ import pandas as pd
 import seaborn as sns
 import sys
 import zipfile
+from util import get_timepoints_abbr
 
 sys.setrecursionlimit(10000)
 
@@ -64,6 +65,8 @@ def process_celltypes(path: str, timepoints: 'list[str]', celltypes: 'list[str]'
         timepoints (list[str]): List of timepoints.
         filtered_GRNs (dict[str: dict[str: pd.Dataframe]]): Dictionary of filtered GRNs.
     """
+
+    abbr = get_timepoints_abbr()
 
     # For each celltype, get counts for each timepoint and linkages for all timepoints
     vmax, vmin = 0.1, -0.1
@@ -124,25 +127,27 @@ def process_celltypes(path: str, timepoints: 'list[str]', celltypes: 'list[str]'
             df_counts_union[timepoint] = df_counts_union[timepoint].iloc[row_order, col_order]
 
         # Save reordered dataframes
-        if not os.path.exists(f'{path}/{ct}'):
-            os.makedirs(f'{path}/{ct}')
-        if not os.path.exists(f'{path}/{ct}/tp'):
-            os.makedirs(f'{path}/{ct}/tp')
+        if not os.path.exists(f'{path}/ct'):
+            os.makedirs(f'{path}/ct')
+        if not os.path.exists(f'{path}/ct/{ct}'):
+            os.makedirs(f'{path}/ct/{ct}')
         for timepoint in timepoints:
-            df_counts_union[timepoint].to_csv(f"{path}/tp/{ct}/{ct}_{timepoint}.csv")
+            df_counts_union[timepoint].to_csv(f"{path}/ct/{ct}/{ct}_{abbr[timepoint]}.csv")
 
 
 def process_timepoints(path, timepoints, celltypes, filtered_GRNs):
     """
     """
 
+    abbr = get_timepoints_abbr()
+
     # For each timepoint, get counts for each celltype and linkages for all celltypes
     vmax, vmin = 0.1, -0.1
     for tp in timepoints:
 
+        # Step 1. collect all sources and targets across all celltypes
         all_sources = set()
         all_targets = set()
-
         for celltype in celltypes:
             df = filtered_GRNs[tp][celltype]
             all_sources.update(df['source'].unique())
@@ -157,7 +162,7 @@ def process_timepoints(path, timepoints, celltypes, filtered_GRNs):
             df_pivot = df.pivot(index='target', columns='source', values='coef_mean').reindex(index=all_targets, columns=all_sources).fillna(0)
             df_counts_union[celltype] = df_pivot
 
-        # compute the linkages from the first and the last timepoints, by augmenting the "time" components
+        # compute the linkages from the all cell types, by augmenting the "celltype" components
         df_counts1 = df_counts_union["neural_posterior"]
         df_counts2 = df_counts_union["spinal_cord"]
         df_counts3 = df_counts_union["NMPs"]
@@ -194,19 +199,19 @@ def process_timepoints(path, timepoints, celltypes, filtered_GRNs):
             df_counts_union[celltype] = df_counts_union[celltype].iloc[row_order, col_order]
 
         # Save reordered dataframes
-        if not os.path.exists(f'{path}/{tp}'):
-            os.makedirs(f'{path}/{tp}')
-        if not os.path.exists(f'{path}/{tp}/ct'):
-            os.makedirs(f'{path}/{tp}/ct')
+        if not os.path.exists(f'{path}/tp'):
+            os.makedirs(f'{path}/tp')
+        if not os.path.exists(f'{path}/tp/{abbr[tp]}'):
+            os.makedirs(f'{path}/tp/{abbr[tp]}')
         for celltype in celltypes:
-            df_counts_union[celltype].to_csv(f"{path}/ct/{celltype}/{celltype}_{tp}.csv")
+            df_counts_union[celltype].to_csv(f"{path}/tp/{abbr[tp]}/{abbr[tp]}_{celltype}.csv")
 
 
 def main():
     """
     """
 
-    path = 'grn/data'
+    path = os.path.dirname(os.path.abspath(__file__))+'/data'
     if not os.path.exists(path):
         os.makedirs(path)
     timepoints = ['TDR126', 'TDR127', 'TDR128', 'TDR118', 'TDR125', 'TDR124']
@@ -221,10 +226,11 @@ def main():
     # Save data as zipfile for download
     with zipfile.ZipFile(f'{path}/data.zip', 'w') as z:
         for root, dirs, files in os.walk(path):
+            if root.endswith('links'):
+                continue
             for file in files:
                 z.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), path))
 
 
 if __name__ == '__main__':
     main()
-

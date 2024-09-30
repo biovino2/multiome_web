@@ -6,6 +6,7 @@ Ben Iovino  08/09/24    CZ-Biohub
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from util import get_timepoints_abbr
 
 
 def load_data(path: str, celltype: str, timepoint: str, control: str) -> 'pd.DataFrame':
@@ -21,15 +22,17 @@ def load_data(path: str, celltype: str, timepoint: str, control: str) -> 'pd.Dat
         df_counts (pd.DataFrame): The counts for the celltype at the timepoint.
     """
 
+    abbr = get_timepoints_abbr()
+
     # Plotting multiple time points for each cell type
     if control == 'timepoint':
         path += '/ct'  # this is very confusing
-        df_counts = pd.read_csv(f"{path}/{celltype}/{celltype}_{timepoint}.csv", index_col=0)
+        df_counts = pd.read_csv(f"{path}/{celltype}/{celltype}_{abbr[timepoint]}.csv", index_col=0)
 
     # Plotting multiple cell types for each time point
     if control == 'celltype':
         path += '/tp'  # still confusing
-        df_counts = pd.read_csv(f"{path}/{timepoint}/{timepoint}_{celltype}.csv", index_col=0)
+        df_counts = pd.read_csv(f"{path}/{abbr[timepoint]}/{abbr[timepoint]}_{celltype}.csv", index_col=0)
     df_counts = df_counts.transpose()  # genes on y-axis, TFs on x-axis
 
     return df_counts

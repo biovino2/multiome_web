@@ -36,3 +36,20 @@ def get_timepoints() -> 'dict[str, str]':
                 'TDR124': '24 hours post fertilization'}
     
     return datasets
+
+
+def get_timepoints_abbr() -> 'dict[str, str]':
+    """Returns a dictionary of datasets and their corresponding timepoints.
+
+    Returns:
+        dict_datasets: Dictionary of datasets and timepoints.
+    """
+
+    datasets = {'TDR126': '10hpf',
+                'TDR127': '12hpf',
+                'TDR128': '14hpf',
+                'TDR118': '16hpf',
+                'TDR125': '19hpf',
+                'TDR124': '24hpf'}
+    
+    return datasets
