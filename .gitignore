@@ -1,6 +1,8 @@
-dyn/__pycache__
-dyn/data/samples
-dyn/data/gene_dict.pkl
-grn/__pycache__
-grn/data/links
-grn/settings.txt
+src/__pycache__
+src/dyn/__pycache__
+src/dyn/data/samples
+src/dyn/data/gene_dict.pkl
+src/grn/__pycache__
+src/grn/data/links
+src/grn/settings.txt
+src/multiome_web.egg-info
