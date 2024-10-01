@@ -8,7 +8,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
-from util import get_datasets
+from util import get_datasets, get_timepoints_abbr
 
 
 def st_setup():
@@ -120,14 +120,9 @@ def make_figure(path: str, timepoints: dict[str:str], inv_tp: dict[str:str]) -> 
 # Plot figure
 path = os.path.dirname(os.path.abspath(__file__))+'/data'
 datasets = get_datasets()
-inv_tp = {'TDR126': '10 hpf',
-            'TDR127': '12 hpf',
-            'TDR128': '14 hpf',
-            'TDR118': '16 hpf',
-            'TDR125': '19 hpf',
-            'TDR124': '24 hpf'}
+timepoints = get_timepoints_abbr()
 st_setup()
-fig, meso_df, ne_df = make_figure(path, datasets, inv_tp)
+fig, meso_df, ne_df = make_figure(path, datasets, timepoints)
 st.plotly_chart(fig)
 
 # Add two checkboxes to display dataframes, one in each column

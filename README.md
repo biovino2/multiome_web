@@ -9,6 +9,7 @@ git clone https://github.com/biovino2/multiome_web
 cd multiome_web/
 conda env create -f env.yml
 conda activate multiome_web
+python -m pip install -e .
 ```
 
 ### Alternate installation
@@ -24,21 +25,21 @@ If creating a conda environment does not work for you, try installing each packa
 Run the following command to run a streamlit instance that shows a track plot and associated peaks for every gene, as well as correlation scatter plots between gene activity and expression:
 
 ```
-streamlit run dyn/plot_dyn.py
+streamlit run src/dyn/plot_dyn.py
 ```
 
 ### GRN plots
 Run the following command to run a streamlit instance that shows CellOracle GRNs as heatmaps for cell types and time points:
 
 ```
-streamlit run grn/plot_grn.py
+streamlit run src/grn/plot_grn.py
 ```
 
 ### TF Knockouts
 Run the following command to run a streamlit instance that depicts the transition probabilities of metacells given a transcription factor knockout:
 
 ```
-streamlit run tfko/plot_tfko.py
+streamlit run src/tfko/plot_tfko.py
 ```
 
 ## Viewing a streamlit instance

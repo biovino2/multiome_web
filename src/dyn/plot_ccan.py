@@ -29,12 +29,8 @@ def get_data(path: str, option: str) -> 'tuple[pl.DataFrame, pl.DataFrame]':
     return gene_data, atac_data
 
 
-def plot_genomic_region(start: int, end: int) -> go.Figure:
+def plot_genomic_region() -> go.Figure:
     """Returns a plotly figure with a line plot representing the genomic region.
-
-    Args:
-        start (int): The start of the region.
-        end (int): The end of the region.
 
     Returns:
         go.Figure: A plotly figure.
@@ -55,14 +51,12 @@ def plot_genomic_region(start: int, end: int) -> go.Figure:
     return fig
 
 
-def plot_gene(fig: go.Figure, gene_data: pl.DataFrame, start: int, end: int) -> go.Figure:
+def plot_gene(fig: go.Figure, gene_data: pl.DataFrame) -> go.Figure:
     """Plots the gene track on the figure.
     
     Args:
         fig (go.Figure): The plotly figure.
         gene_data (pl.DataFrame): The gene data.
-        start (int): The start of the genomic region.
-        end (int): The end of the genomic region.
 
     Returns:
         go.Figure: The plotly figure with the gene track.
@@ -221,7 +215,7 @@ def plot_legend(fig: go.Figure) -> go.Figure:
     return fig
 
 
-def combined_plot(path: str, option: str) -> go.Figure:
+def combined_plot(path: str, option: str) -> 'tuple[go.Figure, int, int]':
     """Returns a plotly figure with the gene track and ATAC data for the gene of interest.
 
     Args:
@@ -230,6 +224,8 @@ def combined_plot(path: str, option: str) -> go.Figure:
 
     Returns:
         go.Figure: A plotly figure.
+        start (int): The start of the genomic region.
+        end (int): The end of the genomic
     """
 
     gene_data, atac_data = get_data(path, option)
@@ -239,8 +235,8 @@ def combined_plot(path: str, option: str) -> go.Figure:
     end = max(gene_data['end'].max(), atac_data['end'].max())
 
     # Plot each component
-    fig = plot_genomic_region(start, end)
-    fig = plot_gene(fig, gene_data, start, end)
+    fig = plot_genomic_region()
+    fig = plot_gene(fig, gene_data)
     fig = plot_atac(fig, atac_data)
     fig = plot_legend(fig)
 
@@ -258,7 +254,7 @@ def combined_plot(path: str, option: str) -> go.Figure:
         yaxis=dict(showgrid=False)      # Hide gridlines
     )
 
-    return fig
+    return fig, start, end
 
 
 def load_zfin_info(path: str) -> 'tuple[dict, dict]':
@@ -346,15 +342,18 @@ mapping, info = load_zfin_info(path)
 # Set up streamlit, get input
 option = st_setup(gene_names) 
 
-# Get gene info and plot gene track
+# Get gene info and plot figure
 df = pl.read_csv(f'{path}/GRCz11.csv')
 chrom = df.filter(pl.col('gene_name') == option)['seqname'][0]
+ensembl_id = df.filter(pl.col('gene_name') == option)['gene_id'][0]
 st.markdown(f'### {option} (chr{chrom})')
+fig, start, end  = combined_plot(path, option)
 
 # Display
 try:
-    st.markdown(f"[(ZFIN) {mapping[option]}](https://zfin.org/{mapping[option]}): {info[option]}")
+    st.markdown(f"[ENSEMBL](https://useast.ensembl.org/Danio_rerio/Gene/Summary?db=core;g={ensembl_id};r={chrom}:{start}-{end}), \
+                [ZFIN](https://zfin.org/{mapping[option]}): \
+                {info[option]}")
 except KeyError:
-    st.write("No ZFIN information available.")
-fig  = combined_plot(path, option)
+    st.write("No links available.")
 st.plotly_chart(fig)
