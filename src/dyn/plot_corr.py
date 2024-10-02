@@ -14,16 +14,30 @@ from scipy.stats import pearsonr
 import streamlit as st
 from preprocess_corr import define_color_dict
 from util import get_timepoints
+from functools import lru_cache
 
 
-def st_setup() -> str:
+@lru_cache(maxsize=1)
+def load_data(path: str) -> dict:
+    """Returns dictionary of genes and their values for each time point. This is inside of a
+    function so that it can be cached, since gene_dict is 500MB.
+    """
+
+    return pkl.load(open(f"{path}/gene_dict.pkl", "rb"))
+
+
+def st_setup(gene_names: 'list[str]') -> tuple[str, list[str]]:
     """Initializes streamlit session.
+
+    Args:
+        gene_names (list[str]): The list of gene names.
 
     Returns:
         str: The selected cell type.
+        list[str]: The selected genes.
+
     """
 
-    st.set_page_config(layout="wide")
     st.sidebar.markdown('# Settings')
     st.title('Gene Activity vs. Expression')
     st.write('For each time point, we plot plot time-resolved scatter plots of gene activity, which \
@@ -68,7 +82,19 @@ def st_setup() -> str:
         index=celltypes.index('All')
     )
 
-    return celltype
+    # Create selectboxes for adding genes
+    selected_genes = []
+    default = gene_names.index('slc4a1a')
+    for i, key in enumerate(st.session_state.selectboxes):
+        st.sidebar.selectbox(
+            f'Select gene {i+1}',
+            gene_names,
+            key=key,
+            index=default
+        )
+        selected_genes.append(st.session_state[key])
+
+    return celltype, selected_genes
 
 
 def save_config() -> dict:
@@ -236,21 +262,9 @@ def plot_genes(celltype: str, gene: str, gene_dict: 'dict[str:sc.AnnData]') -> p
 
 # Load data and set up streamlit
 path = os.path.dirname(os.path.abspath(__file__))+'/data'
-gene_dict = pkl.load(open(f"{path}/gene_dict.pkl", "rb"))
+gene_dict = load_data(path)
 gene_names = list(gene_dict.keys())
-celltype = st_setup()
-
-# Create selectboxes
-selected_genes = []
-default = gene_names.index('slc4a1a')
-for i, key in enumerate(st.session_state.selectboxes):
-    st.sidebar.selectbox(
-        f'Select gene {i+1}',
-        gene_names,
-        key=key,
-        index=default
-    )
-selected_genes.append(st.session_state[key])
+celltype, selected_genes = st_setup(gene_names)
 
 # Plot each figure
 for gene in selected_genes:
