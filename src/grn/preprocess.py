@@ -29,7 +29,7 @@ def load_links(path: str, files: 'list[str]') -> 'dict[str: co.Links]':
     for dataset in files:
         if dataset.endswith(".txt"):
             continue
-        file_name = f"{path}/links/{dataset}_celltype_GRNs.celloracle.links"
+        file_name = f"{path}/links/08_{dataset}_celltype_GRNs.celloracle.links"
         dict_links[dataset] = co.load_hdf5(file_name)
 
     return dict_links
@@ -145,9 +145,9 @@ def process_timepoints(path, timepoints, celltypes, filtered_GRNs):
     vmax, vmin = 0.1, -0.1
     for tp in timepoints:
 
-        # Step 1. collect all sources and targets across all celltypes
         all_sources = set()
         all_targets = set()
+
         for celltype in celltypes:
             df = filtered_GRNs[tp][celltype]
             all_sources.update(df['source'].unique())
@@ -162,7 +162,7 @@ def process_timepoints(path, timepoints, celltypes, filtered_GRNs):
             df_pivot = df.pivot(index='target', columns='source', values='coef_mean').reindex(index=all_targets, columns=all_sources).fillna(0)
             df_counts_union[celltype] = df_pivot
 
-        # compute the linkages from the all cell types, by augmenting the "celltype" components
+        # compute the linkages from the first and the last timepoints, by augmenting the "time" components
         df_counts1 = df_counts_union["neural_posterior"]
         df_counts2 = df_counts_union["spinal_cord"]
         df_counts3 = df_counts_union["NMPs"]
@@ -207,6 +207,38 @@ def process_timepoints(path, timepoints, celltypes, filtered_GRNs):
             df_counts_union[celltype].to_csv(f"{path}/tp/{abbr[tp]}/{abbr[tp]}_{celltype}.csv")
 
 
+def get_scores(path: str, metric: str, top_n: int):
+    """Saves top n scores for each cell type at each time point.
+
+    Args:
+        path (str): Path to save the csv files.
+        metric (str): Metric to sort by.
+        top_n (int): Number of top scores to save.
+    """
+
+    if not os.path.exists(f'{path}/scores'):
+        os.makedirs(f'{path}/scores')
+
+    timepoints = get_timepoints_abbr()
+    celltypes = ['NMPs', 'PSM', 'neural_posterior', 'somites', 'spinal_cord', 'tail_bud']
+    for dataset in list(timepoints.keys()):
+
+        links = co.load_hdf5(f'/hpc/projects/data.science/benjamin.iovino/multiome_web/src/grn/data/links/08_{dataset}_celltype_GRNs.celloracle.links')
+        scores = links.merged_score[['degree_centrality_all', 'cluster']]
+
+        # For each cell type, sort by degree_centrality_all and get top 30
+        top_scores = {}
+        for ct in celltypes:
+            df = scores[scores['cluster'] == ct]
+            df = df.sort_values(by=metric, ascending=False)
+            top_scores[ct] = df.head(top_n)
+
+            if not os.path.exists(f'{path}/scores/{timepoints[dataset]}'):
+                os.makedirs(f'{path}/scores/{timepoints[dataset]}')
+
+            top_scores[ct].to_csv(f'{path}/scores/{timepoints[dataset]}/{ct}.csv')
+
+
 def main():
     """
     """
@@ -222,10 +254,11 @@ def main():
     _, filtered_GRNs = get_dicts(links)
     process_celltypes(path, timepoints, celltypes, filtered_GRNs)
     process_timepoints(path, timepoints, celltypes, filtered_GRNs)
+    get_scores(path, 'degree_centrality_all', 30)
 
     # Save data as zipfile for download
     with zipfile.ZipFile(f'{path}/data.zip', 'w') as z:
-        for root, dirs, files in os.walk(path):
+        for root, _, files in os.walk(path):
             if root.endswith('links'):
                 continue
             for file in files:
