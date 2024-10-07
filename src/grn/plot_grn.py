@@ -5,6 +5,7 @@ Ben Iovino  08/09/24    CZ-Biohub
 
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import streamlit as st
 from util import get_timepoints_abbr
 
@@ -62,6 +63,57 @@ def plot_grn(path: str, celltype: str, timepoint: str, control: str) -> 'go.Heat
         colorscale='balance',
         zmin=-0.1, zmax=0.1
     )
+
+    return fig
+
+
+def plot_scores(path: str, celltypes: 'list[str]', timepoints: 'list[str]') -> 'go.Heatmap':
+    """Returns a scatter plot of the network scores.
+
+    Args:
+        path (str): The path to the data.
+        celltypes (list[str]): The list of cell types.
+        timepoint (list[str]): The list of time points.
+    """
+
+    # Create figure depending on size of lists
+    fig = make_subplots(
+        rows = 1,
+        cols = max(len(celltypes), len(timepoints)),
+    )
+
+    # Change timepoints to abbreviations
+    timepoints = [f'{tp.split()[0]}hpf' for tp in timepoints]
+
+    for i, ct in enumerate(celltypes):
+        for j, tp in enumerate(timepoints):
+            df_scores = pd.read_csv(f"{path}/scores/{tp}/{ct}.csv", index_col=0)
+
+            # Create scatter plot where x is score, y is gene name
+            fig.add_trace(
+                go.Scatter(
+                    x=df_scores['degree_centrality_all'],
+                    y=df_scores.index,
+                    mode='markers',
+                    marker=dict(
+                        size=10,
+                        color=df_scores['degree_centrality_all'],
+                        colorscale='balance',
+                    ),
+                    name=f"{ct} {tp}"
+                ),
+                row=1, col=max(i, j)+1
+            )
+
+            # Reverse y-axis
+            fig.update_yaxes(autorange='reversed', row=1, col=max(i, j)+1)
+            fig.update_xaxes(title='Degree Centrality', row=1, col=max(i, j)+1)
+            fig.update_layout(height=500, width=2000, showlegend=False, margin=dict(l=0, r=0, t=40, b=0))
+
+            # Update hoverinfo
+            fig.data[-1].update(
+                hovertemplate='TF: %{y}<br>Degree Centrality: %{x}<extra></extra>',
+                hoverlabel=dict(namelength=0))
 
     return fig
 

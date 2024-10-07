@@ -5,7 +5,7 @@ Ben Iovino  08/22/24    CZ-Biohub
 
 import os
 import streamlit as st
-from plot_grn import plot_grn, save_config
+from plot_grn import plot_grn, save_config, plot_scores
 from plotly.subplots import make_subplots
 from util import get_datasets
 
@@ -91,6 +91,7 @@ def make_figure(path: str, celltype: str, timepoints: dict[str:str]):
     # Create figure (subplots)
     fig = make_subplots(
         rows=1,
+        horizontal_spacing=0.075,
         cols=len(selected_timepoints),
         subplot_titles=[f"{tp}" for tp in selected_timepoints],
         shared_yaxes=True,
@@ -113,7 +114,8 @@ def make_figure(path: str, celltype: str, timepoints: dict[str:str]):
     fig.update_layout(height=500, width=2000, showlegend=False, margin=dict(l=0, r=0, t=50, b=0))
     fig.update_layout(coloraxis=dict(colorscale='RdBu_r'))
 
-    return fig
+    return fig, selected_timepoints
+
 
 ### Main
 
@@ -124,10 +126,15 @@ datasets = get_datasets()
 celltypes = ['neural_posterior', 'NMPs', 'PSM', 'somites', 'spinal_cord', 'tail_bud']
 celltype = st_setup(celltypes)
 st.markdown(f'### {celltype}')
-fig = make_figure(path, celltype, datasets)
+fig, selected_timepoints = make_figure(path, celltype, datasets)
+scores = plot_scores(path, [celltype], selected_timepoints)
 st.plotly_chart(fig, config=save_config())
 
 # Download button
 with open(path + '/data.zip', 'rb') as file:
     data = file.read()
 st.sidebar.download_button('Download Data', data=data, file_name=path + '/data.zip')
+
+# Button to display scatter plots
+if st.checkbox('Show degree centrality scores'):
+    st.plotly_chart(scores, config=save_config())

@@ -5,7 +5,7 @@ Ben Iovino  08/22/24    CZ-Biohub
 
 import os
 import streamlit as st
-from plot_grn import plot_grn, save_config
+from plot_grn import plot_grn, save_config, plot_scores
 from plotly.subplots import make_subplots
 from util import get_datasets
 
@@ -90,7 +90,7 @@ def make_figure(path: str, timepoint: str, celltypes: 'list[str]'):
     # Create figure (subplots)
     fig = make_subplots(
         rows=1,
-        horizontal_spacing=0.1,
+        horizontal_spacing=0.075,
         cols=len(selected_celltypes),
         subplot_titles=[f"{(' '.join(ct.split('_')))}" for ct in selected_celltypes],
         shared_xaxes=True,
@@ -105,7 +105,7 @@ def make_figure(path: str, timepoint: str, celltypes: 'list[str]'):
         # Update hover template and axis labels
         fig.data[-1].update(
             hovertemplate='TF: %{x}<br>Gene: %{y}<br>Strength: %{z}<extra></extra>',
-        hoverlabel=dict(namelength=0))
+            hoverlabel=dict(namelength=0))
         fig.update_xaxes(tickfont=dict(size=12), row=1, col=i+1, matches='x')
         fig.update_yaxes(tickfont=dict(size=12), row=1, col=i+1, matches='y')
 
@@ -113,7 +113,7 @@ def make_figure(path: str, timepoint: str, celltypes: 'list[str]'):
     fig.update_layout(height=500, width=2000, showlegend=False, margin=dict(l=0, r=0, t=50, b=0))
     fig.update_layout(coloraxis=dict(colorscale='RdBu_r'))
 
-    return fig
+    return fig, selected_celltypes
 
 ### Main
 
@@ -124,10 +124,15 @@ datasets = get_datasets()
 celltypes = ['neural_posterior', 'NMPs', 'PSM', 'somites', 'spinal_cord', 'tail_bud']
 timepoint = st_setup(list(datasets.keys()))
 st.markdown(f'### {timepoint}')
-fig = make_figure(path, datasets[timepoint], celltypes)
+fig, selected_celltypes = make_figure(path, datasets[timepoint], celltypes)
+scores = plot_scores(path, selected_celltypes, [timepoint])
 st.plotly_chart(fig, config=save_config())
 
 # Download button
 with open(path + '/data.zip', 'rb') as file:
     data = file.read()
 st.sidebar.download_button('Download Data', data=data, file_name=path + '/data.zip')
+
+# Button to display scatter plots
+if st.checkbox('Show degree centrality scores'):
+    st.plotly_chart(scores, config=save_config())
