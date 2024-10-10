@@ -299,11 +299,11 @@ def st_setup(gene_names: list[str]):
     """
 
     st.set_page_config(layout="wide")
-    st.title('Cis Co-Accessibility and Gene Track Plots')
-    st.write("For each gene, we plot the peaks and protein coding region. The peaks we show are \
-             highly correlated with the transcription start site of the selected gene. For more \
-             information about the gene and it's regulatory elements, we also provide links to \
-             ZFIN and Ensembl, if they are available.")
+    st.title('Chromatin Co-Accessibility and Gene Track Plots')
+    st.write("For each gene, we display the distal and proximal regulatory elements (peaks) along with the protein-coding region. \
+            The peaks shown are highly correlated with the transcription start site of the selected gene, as computed using cicero (Pliner et al., 2018). \
+            To provide more comprehensive information about the gene and its regulatory elements, we also include links to ZFIN and Ensembl databases, \
+            where available")
             
     st.sidebar.markdown('# Settings')
 

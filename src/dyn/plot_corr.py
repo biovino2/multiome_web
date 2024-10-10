@@ -29,11 +29,10 @@ def st_setup(gene_names: 'list[str]') -> tuple[str, list[str]]:
 
     st.sidebar.markdown('# Settings')
     st.title('Gene Activity vs. Expression')
-    st.write('For each time point, we plot plot time-resolved scatter plots of gene activity, which \
-              represents the signal from the peaks within the gene body, and gene expression, which \
-             represents the normalized transcript counts. Each point represents a metacell (SEACell), \
-              colored by cell type. The correlation between gene activity and expression is also \
-              calculated.')
+    st.write('For each time point, we present time-resolved scatter plots comparing gene activity (ATAC) and gene expression (RNA). \
+            Gene activity represents the sum of ATAC signals within the gene body, while gene expression represents transcript counts (both are log-normalized). \
+            Each point on the plot represents a metacell, computed using SEACell (Persad et al., 2023), and is colored according to the most prevalent cell type. \
+            The Pearson correlation coefficient between gene activity and gene expression is also displayed.')
     
     # Remove extra space at top of the page
     st.markdown(

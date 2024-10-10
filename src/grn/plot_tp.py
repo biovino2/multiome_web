@@ -22,11 +22,10 @@ def st_setup(celltypes: list[str]) -> str:
 
     st.set_page_config(layout="wide")
     st.title('Time-Resolved Gene Regulatory Networks (GRNs)')
-    st.write('For each time point, we plot the CellOracle predicted GRNs for each cell type. The \
-             GRNs are represented as a heatmap, with the transcription factors on the x-axis and \
-             the genes on the y-axis. The color of each cell represents the strength of the \
-             interaction between the transcription factor and the gene, with red indicating \
-             activation and blue indicating repression.')
+    st.write('For each cell-type, we present the Gene Regulatory Networks (GRNs), computed by CellOracle (Kamimoto et al., 2023), \
+            for each time point. These GRNs are visualized as heatmaps, with transcription factors on the x-axis and target genes on the y-axis.\
+            The color intensity in each element represents the strength of the interaction between a transcription factor and a gene, \
+            with red indicating activation and blue indicating repression.')
              
     st.sidebar.markdown('# Settings')
 

@@ -285,11 +285,11 @@ def st_setup(timepoints: list[str]) -> str:
     """
 
     st.set_page_config(layout="wide")
-    st.title('In-Silico Transcription Factor Knockout')
-    st.write('For each time point, we plot the mesodermal and neuro-ectodermal cells in UMAP space, \
-             colored by their cell type. We also plot the metacells (SEACells), depicted as larger \
-             points and colored by their most prevalent cell type. The arrows represent the transition \
-             probabilities of the metacells depending on the transcription factor knockout.')
+    st.markdown("# *in silico* Genetic Perturbation of Transcription Factors")
+    st.write('For each time point, we visualize the mesodermal and neuro-ectodermal cells in UMAP space, with each cell colored according to its cell type.\
+            We also display metacells, computed using SEACells (Persad et al., 2023), as larger points, \
+            colored by their most prevalent cell type. The arrows on metacells represent 2D-projected transition probabilities, \
+            which are dependent on the transcription factor knockout being modeled.')
     st.sidebar.markdown('# Settings')
 
     # Remove extra space at top of the page
