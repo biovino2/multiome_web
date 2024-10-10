@@ -3,8 +3,10 @@
 08/16/24    Ben Iovino    CZ-Biohub
 """
 
+import polars as pl
 import scanpy as sc
 import numpy as np
+import os
 import pandas as pd
 import pickle
 
@@ -73,7 +75,7 @@ def get_datasets(path: str, datasets: 'list[str]') -> 'dict[str:sc.AnnData]':
         sample_id = data_id.replace("reseq","")
     
         # import the single-cell adata's annotation (with adata.obs["SEACell"] annotation)
-        df_seacells = pd.read_csv(f'{path}/{data_id}/{data_id}_seacells_obs_annotation_ML_coarse.csv', index_col=0)
+        df_seacells = pd.read_csv(f'{path}/{data_id}_seacells_obs_annotation_ML_coarse.csv', index_col=0)
     
         # Group by SEACell and find the most prevalent annotation for each SEACell
         most_prevalent = df_seacells.groupby('SEACell')['annotation_ML_coarse'].agg(lambda x: x.value_counts().idxmax())
@@ -94,8 +96,8 @@ def get_datasets(path: str, datasets: 'list[str]') -> 'dict[str:sc.AnnData]':
         seacell_to_annotation = df_prevalent["most_prevalent_annotation"].to_dict()
 
         # import adata (aggregated over seacells)
-        rna_meta_ad = sc.read_h5ad(path + f"{data_id}/{sample_id}_RNA_seacells_aggre.h5ad")
-        atac_meta_ad = sc.read_h5ad(path + f"{data_id}/{sample_id}_ATAC_seacells_aggre.h5ad")
+        rna_meta_ad = sc.read_h5ad(f'{path}/{data_id}/{sample_id}_RNA_seacells_aggre.h5ad')
+        atac_meta_ad = sc.read_h5ad(f'{path}/{data_id}/{sample_id}_ATAC_seacells_aggre.h5ad')
     
         # First, we'll subset the features that are shared between RNA and ATAC (gene names)
         shared_genes = np.intersect1d(rna_meta_ad.var_names, atac_meta_ad.var_names)
@@ -156,19 +158,66 @@ def get_gene_dict(dict_meta: 'dict[str:sc.AnnData]') -> 'dict[str:dict[tuple[np.
     return gene_dict
 
 
+def write_gene_csv(gene_dict: 'dict[str:dict[tuple[np.ndarray, np.ndarray, list[str]]]]', path: str):
+    """Writes each gene to a csv file.
+
+    Args:
+        gene_dict (dict[str, dict[tuple[np.ndarray, np.ndarray, list[str]]]): The dictionary of genes and their values.
+        path (str): The path to save the csv files.
+    """
+
+    if not os.path.exists('src/dyn/data/corr'):
+        os.makedirs('src/dyn/data/corr')
+
+    timepoints = ['TDR126', 'TDR127', 'TDR128', 'TDR118', 'TDR125', 'TDR124']
+    for gene in list(gene_dict.keys()):
+        gene = gene.replace('/', '-')  # a few genes have '/' in their name, who would do such a thing?
+
+        # Extract values from gene dictionary
+        rna_full, atac_full, colors_full, tp_full = [], [], [], []
+        for tp in timepoints:
+            try:  # Skip if gene is not present in a timepoint
+                rna, atac, colors = gene_dict[gene][tp]
+                colors = colors[:len(rna)]
+            except KeyError:
+                continue
+
+            # Add each value in rna and atac array to rna_full and atac_full lists
+            rna_full.extend(rna)
+            atac_full.extend(atac)
+            colors_full.extend(colors)
+            tp_full.extend([tp] * len(rna))
+
+        # Create a polars dataframe and save to file
+        df = pl.DataFrame({
+            'RNA': rna_full,
+            'ATAC': atac_full,
+            'Color': colors_full,
+            'Timepoint': tp_full
+            })
+        df.write_csv(f'src/dyn/data/corr/{gene}.csv')
+
+
 def main():
     """
     """
 
-    path = 'dyn/data'
-
     # Get meta dictionary containing all datasets
+    path = '/hpc/projects/data.science/yangjoon.kim/zebrahub_multiome/data/processed_data/05_SEACells_processed'
     datasets = ['TDR126', 'TDR127', 'TDR128', 'TDR118reseq', 'TDR125reseq', 'TDR124reseq']
-    dict_meta = get_datasets(datasets)
+    dict_meta = get_datasets(path, datasets)
 
     # Get gene dictionary
     gene_dict = get_gene_dict(dict_meta)
-    pickle.dump(gene_dict, open(f"{path}/gene_dict.pkl", "wb"))
+    pickle.dump(gene_dict, open("src/dyn/data/gene_dict.pkl", "wb"))
+
+    # Write each gene to a csv file
+    write_gene_csv(gene_dict, 'src/dyn/data/corr')
+
+    # Write gene names to file
+    with open('src/dyn/data/corr/gene_names.txt', 'w') as f:
+        for gene in list(gene_dict.keys()):
+            f.write(f"{gene}\n")
 
 
 if __name__ == "__main__":
