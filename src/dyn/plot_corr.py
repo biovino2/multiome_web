@@ -5,25 +5,14 @@ Ben Iovino  08/08/24    CZ-Biohub
 
 import matplotlib.pyplot as plt
 import os
-import pickle as pkl
+import polars as pl
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
-import scanpy as sc
 from scipy.stats import pearsonr
 import streamlit as st
 from preprocess_corr import define_color_dict
 from util import get_timepoints
-from functools import lru_cache
-
-
-@lru_cache(maxsize=1)
-def load_data(path: str) -> dict:
-    """Returns dictionary of genes and their values for each time point. This is inside of a
-    function so that it can be cached, since gene_dict is 500MB.
-    """
-
-    return pkl.load(open(f"{path}/gene_dict.pkl", "rb"))
 
 
 def st_setup(gene_names: 'list[str]') -> tuple[str, list[str]]:
@@ -118,40 +107,6 @@ def save_config() -> dict:
     return config
 
 
-def subset_data(gene_dict: dict, gene: str, sample_id: str, celltype: str) -> 'tuple[np.ndarray, np.ndarray, list[str], list[str]]':
-    """Returns gene expression and activity values as arrays, as well as colors for each cell type.
-
-    Args:
-        gene_dict (dict): The dictionary of genes and their values for each time point.
-        gene (str): The gene to plot.
-        sample_id (str): The timepoint.
-        celltype (str): The selected cell type.
-
-    Returns:
-        tuple (np.ndarray, np.ndarray, list[str], list[str]): The gene expression values, activity values, colors, and cell type.
-    """
-
-    # Get data for timepoint
-    expr_rna = gene_dict[gene][sample_id][0]
-    expr_atac = gene_dict[gene][sample_id][1]
-    colors = gene_dict[gene][sample_id][2]
-
-    # Map colors to cell types
-    color_dict = define_color_dict()
-    inv_color_dict = {v: k for k, v in color_dict.items()}
-    cell_colors = [inv_color_dict[color] for color in colors]
-
-    # Isolate points related to celltype
-    if celltype != 'All':
-        indices = [i for i, cell in enumerate(cell_colors) if cell == celltype]
-        expr_rna = expr_rna[indices]
-        expr_atac = expr_atac[indices]
-        colors = [colors[i] for i in indices]
-        cell_colors = [cell_colors[i] for i in indices]
-
-    return expr_rna, expr_atac, colors, cell_colors
-
-
 def calc_corr(expr_rna: np.ndarray, expr_atac: np.ndarray) -> float:
     """Returns the correlation between two arrays.
 
@@ -200,13 +155,48 @@ def get_margins(expr_rna: np.ndarray, expr_atac: np.ndarray, rna_max: float, ata
     return rna_max, atac_max
 
 
-def plot_genes(celltype: str, gene: str, gene_dict: 'dict[str:sc.AnnData]') -> plt.Figure:
+def subset_data(gene_df: 'pl.DataFrame', sample_id: str, celltype: str) -> tuple:
+    """Returns gene expression and activity values as arrays, as well as colors for each cell type.
+
+    Args:
+        gene_df (pl.DataFrame): The gene dataframe.
+        sample_id (str): The timepoint.
+        celltype (str): The selected cell type.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray, np.ndarray, list[str]]: The RNA expression, ATAC expression,
+            colors, and cell colors.
+    """
+
+    # Get data for timepoint
+    tp_df = gene_df.filter(pl.col('Timepoint') == sample_id)
+    expr_rna = tp_df['RNA'].to_numpy()
+    expr_atac = tp_df['ATAC'].to_numpy()
+    colors = tp_df['Color']
+
+    # Map colors to cell types
+    color_dict = define_color_dict()
+    inv_color_dict = {v: k for k, v in color_dict.items()}
+    cell_colors = [inv_color_dict[color] for color in colors]
+
+    # Isolate points related to celltype
+    if celltype != 'All':
+        indices = [i for i, cell in enumerate(cell_colors) if cell == celltype]
+        expr_rna = expr_rna[indices]
+        expr_atac = expr_atac[indices]
+        colors = colors[indices]
+        cell_colors = [cell_colors[i] for i in indices]
+
+    return expr_rna, expr_atac, colors, cell_colors
+
+
+def plot_genes(celltype: str, gene: str, gene_df: 'pl.DataFrame') -> plt.Figure:
     """Returns one figure containing scatter plots for each gene.
 
     Args:
         celltype (str): The selected cell type.
         genes (str): Gene to plot
-        dict_meta (dict[str:sc.AnnData]): The dictionary of adata objects.
+        gene_df (pl.DataFrame): The gene dataframe.
 
     Returns:
         plt.Figure: The figure object.
@@ -221,7 +211,7 @@ def plot_genes(celltype: str, gene: str, gene_dict: 'dict[str:sc.AnnData]') -> p
     for index, sample_id in enumerate(list(timepoints.keys())):
 
         # Plot scatter plot with plotly
-        expr_rna, expr_atac, colors, type_colors = subset_data(gene_dict, gene, sample_id, celltype)
+        expr_rna, expr_atac, colors, type_colors = subset_data(gene_df, sample_id, celltype)
         scatter = go.Scatter(
                         x=expr_atac,
                         y=expr_rna,
@@ -261,13 +251,14 @@ def plot_genes(celltype: str, gene: str, gene_dict: 'dict[str:sc.AnnData]') -> p
 ### Main
 
 # Load data and set up streamlit
-path = os.path.dirname(os.path.abspath(__file__))+'/data'
-gene_dict = load_data(path)
-gene_names = list(gene_dict.keys())
+path = os.path.dirname(os.path.abspath(__file__))+'/data/corr'
+with open(f'{path}/gene_names.txt', 'r') as file:
+    gene_names = file.read().splitlines()
 celltype, selected_genes = st_setup(gene_names)
 
 # Plot each figure
 for gene in selected_genes:
-    fig = plot_genes(celltype, gene, gene_dict)
+    gene_df = pl.read_csv(f'{path}/{gene}.csv')
+    fig = plot_genes(celltype, gene, gene_df)
     st.markdown(f'### {gene}')
     st.plotly_chart(fig, config=save_config())
