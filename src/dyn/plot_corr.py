@@ -11,8 +11,7 @@ from plotly.subplots import make_subplots
 import numpy as np
 from scipy.stats import pearsonr
 import streamlit as st
-from preprocess_corr import define_color_dict
-from util import get_timepoints
+from util import get_timepoints, define_color_dict
 
 
 def st_setup(gene_names: 'list[str]') -> tuple[str, list[str]]:

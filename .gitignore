@@ -2,6 +2,7 @@ src/__pycache__
 src/dyn/__pycache__
 src/dyn/data/samples
 src/dyn/data/gene_dict.pkl
+src/dyn/data/corr
 src/grn/__pycache__
 src/grn/data/links
 src/grn/settings.txt
