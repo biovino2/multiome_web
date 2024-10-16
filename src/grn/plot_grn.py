@@ -98,7 +98,6 @@ def plot_scores(path: str, celltypes: 'list[str]', timepoints: 'list[str]') -> '
                     marker=dict(
                         size=10,
                         color=df_scores['degree_centrality_all'],
-                        colorscale='balance',
                     ),
                     name=f"{ct} {tp}"
                 ),
@@ -108,7 +107,10 @@ def plot_scores(path: str, celltypes: 'list[str]', timepoints: 'list[str]') -> '
             # Reverse y-axis
             fig.update_yaxes(autorange='reversed', row=1, col=max(i, j)+1)
             fig.update_xaxes(title='Degree Centrality', row=1, col=max(i, j)+1)
-            fig.update_layout(height=500, width=2000, showlegend=False, margin=dict(l=0, r=0, t=40, b=0))
+            fig.update_layout(height=500, width=2000,
+                                showlegend=False,
+                                margin=dict(l=0, r=0, t=40, b=0),
+                                yaxis=dict(tickmode='linear'))
 
             # Update hoverinfo
             fig.data[-1].update(
