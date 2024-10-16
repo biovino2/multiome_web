@@ -12,7 +12,8 @@ def main():
     
     pg = st.navigation([
         st.Page('plot_ccan.py', title='Peaks'),
-        st.Page('plot_corr.py', title='Correlation'),
+        st.Page('plot_corr.py', title='Correlation (Cell Type)'),
+        st.Page('plot_bulk.py', title='Correlation (Bulk)'),
         ])
     pg.run()
 
