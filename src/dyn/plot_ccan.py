@@ -192,7 +192,8 @@ def plot_legend(fig: go.Figure) -> go.Figure:
         mode='lines+markers',
         line=dict(color='lightgray', width=3),  # Line for the arrow's body
         marker=dict(symbol='triangle-right', size=12, color='lightgray'),  # Arrowhead marker
-        name='Transcription direction'
+        name='Transcription direction',
+        legendgroup='group1'
     ))
 
     # Exons
@@ -200,7 +201,8 @@ def plot_legend(fig: go.Figure) -> go.Figure:
         x=[None], y=[None],
         mode='markers',
         marker=dict(size=12, color='dodgerblue', symbol='square'),
-        name='Exon'
+        name='Exon',
+        legendgroup='group1'
     ))
 
     # ATAC peaks
@@ -209,7 +211,8 @@ def plot_legend(fig: go.Figure) -> go.Figure:
             x=[None], y=[0.15, 0.15],
             mode='markers',
             marker=dict(size=12, color=color, symbol='square'),
-            name=f"ATAC peak - {timepoints[key]}"
+            name=f"ATAC peak - {timepoints[key]}",
+            legendgroup='group2'
         ))
 
     return fig
@@ -334,7 +337,7 @@ def st_setup(gene_names: list[str]):
 ### Main
 
 # Read in data
-path = os.path.dirname(os.path.abspath(__file__))+'/data'
+path = os.path.dirname(os.path.abspath(__file__))+'/data/ccan'
 df = pl.read_csv(f'{path}/access.csv')
 gene_names = pl.read_csv(f'{path}/gene_names.csv')['names'].to_list()
 mapping, info = load_zfin_info(path)
