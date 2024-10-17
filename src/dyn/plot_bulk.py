@@ -89,11 +89,11 @@ def plot_gene(gene: str, fig: go.Figure) -> go.Figure:
         go.Figure: The updated plotly figure 
     """
 
-    colors = {'0somites': '#440154', '5somites': '#414487', '10somites': '#2A788E',
-               '15somites': '#22A884', '20somites': '#7AD151', '30somites': '#FDE725'}
-    timepoints = {'0somites': '10 hours post fertilization', '5somites': '12 hours post fertilization',
-                    '10somites': '14 hours post fertilization', '15somites': '16 hours post fertilization',
-                    '20somites': '19 hours post fertilization', '30somites': '24 hours post fertilization'}
+    colors = {'10hpf': '#440154', '12hpf': '#414487', '14hpf': '#2A788E',
+               '16hpf': '#22A884', '19hpf': '#7AD151', '24hpf': '#FDE725'}
+    timepoints = {'10hpf': '10 hours post fertilization', '12hpf': '12 hours post fertilization',
+                    '14hpf': '14 hours post fertilization', '16hpf': '16 hours post fertilization',
+                    '19hpf': '19 hours post fertilization', '24hpf': '24 hours post fertilization'}
 
     x_atac = gex_values[gene]
     y_rna = atac_values[gene]
