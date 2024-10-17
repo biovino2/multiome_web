@@ -104,7 +104,9 @@ def make_figure(path: str, celltype: str, timepoints: dict[str:str]):
 
         # Update hover template and axis labels
         fig.data[-1].update(
-            hovertemplate='TF: %{x}<br>Gene: %{y}<br>Strength: %{z}<extra></extra>',
+            hovertemplate='<b>TF:</b> %{x}<br>'
+            '<b>Gene:</b> %{y}<br>'
+            '<b>Strength:</b> %{z}<extra></extra>',
         hoverlabel=dict(namelength=0))
         fig.update_xaxes(tickfont=dict(size=12), row=1, col=i+1, matches='x')
         fig.update_yaxes(tickfont=dict(size=12), row=1, col=i+1, matches='y')

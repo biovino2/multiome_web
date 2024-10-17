@@ -39,7 +39,7 @@ def plot_timepoints(gene: str, fig: go.Figure) -> go.Figure:
             name='Gene Expression (RNA)',
             showlegend=True,
             hoverinfo='text',
-            text=[f'<b>Gene Expression:</b> {round(y, 5)}' for y in y_rna],
+            text=[f'<b>{tp}</b><br><b>Gene Expression:</b> {round(y, 5)}' for tp, y in zip(x_tp, y_rna)],
             error_y=dict(
                 type='data',
                 array=yerr_rna,
@@ -64,7 +64,7 @@ def plot_timepoints(gene: str, fig: go.Figure) -> go.Figure:
             name='Gene Activity (ATAC)',
             showlegend=True,
             hoverinfo='text',
-            text=[f'<b>Gene Activity:</b> {round(y, 5)}' for y in y_atac],
+            text=[f'<b>{tp}</b><br><b>Gene Activity:</b> {round(y, 5)}' for tp, y in zip(x_tp, y_atac)],
             error_y=dict(
                 type='data',
                 array=yerr_atac,
@@ -117,9 +117,9 @@ def plot_gene(gene: str, fig: go.Figure) -> go.Figure:
             name=timepoints[list(colors.keys())[i]],
             showlegend=True,
             hoverinfo='text',
-            text=[f'<b>{list(timepoints.values())[i]}</b><br> \
-                    <b>Gene Activity:</b> \{round(x_atac[i], 5)}<br> \
-                    <b>Gene Expression:</b> {round(y_rna[i], 5)}'],
+            text=[f'<b>{list(timepoints.values())[i]}</b><br>'
+                     f'<b>Gene Activity:</b> {round(x_atac[i], 5)}<br>'
+                     f'<b>Gene Expression:</b> {round(y_rna[i], 5)}'],
             error_x=dict(
                 type='data',
                 array=[xerr[i]],

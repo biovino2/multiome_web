@@ -163,7 +163,7 @@ def subset_data(gene_df: 'pl.DataFrame', sample_id: str, celltype: str) -> tuple
 
     Returns:
         tuple[np.ndarray, np.ndarray, np.ndarray, list[str]]: The RNA expression, ATAC expression,
-            colors, and cell colors.
+            colors, and cell colors with hover text.
     """
 
     # Get data for timepoint
@@ -185,15 +185,20 @@ def subset_data(gene_df: 'pl.DataFrame', sample_id: str, celltype: str) -> tuple
         colors = colors[indices]
         cell_colors = [cell_colors[i] for i in indices]
 
-    return expr_rna, expr_atac, colors, cell_colors
+    # Create hover text with HTML for colored display
+    hover_texts = [
+        f'<span style="color:{color};">{cell}</span>' 
+        for color, cell in zip(colors, cell_colors)
+    ]
+
+    return expr_rna, expr_atac, colors, hover_texts
 
 
-def plot_genes(celltype: str, gene: str, gene_df: 'pl.DataFrame') -> plt.Figure:
+def plot_genes(celltype: str, gene_df: 'pl.DataFrame') -> plt.Figure:
     """Returns one figure containing scatter plots for each gene.
 
     Args:
         celltype (str): The selected cell type.
-        genes (str): Gene to plot
         gene_df (pl.DataFrame): The gene dataframe.
 
     Returns:
@@ -209,14 +214,14 @@ def plot_genes(celltype: str, gene: str, gene_df: 'pl.DataFrame') -> plt.Figure:
     for index, sample_id in enumerate(list(timepoints.keys())):
 
         # Plot scatter plot with plotly
-        expr_rna, expr_atac, colors, type_colors = subset_data(gene_df, sample_id, celltype)
+        expr_rna, expr_atac, colors, hover_texts = subset_data(gene_df, sample_id, celltype)
         scatter = go.Scatter(
                         x=expr_atac,
                         y=expr_rna,
                         mode='markers',
                         marker=dict(color=colors),
-                        hoverinfo='text',
-                        text=type_colors,
+                        customdata=hover_texts,  # Pass hover text with HTML styling
+                        hovertemplate='%{customdata}<extra></extra>',  # Show HTML hover text
                     )
         
         # Calculate correlation and update margins with max rna/atac values
@@ -257,6 +262,6 @@ celltype, selected_genes = st_setup(gene_names)
 # Plot each figure
 for gene in selected_genes:
     gene_df = pl.read_csv(f'{path}/{gene}.csv')
-    fig = plot_genes(celltype, gene, gene_df)
+    fig = plot_genes(celltype, gene_df)
     st.markdown(f'### {gene}')
     st.plotly_chart(fig, config=save_config())

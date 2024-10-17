@@ -104,18 +104,19 @@ def plot_scores(path: str, celltypes: 'list[str]', timepoints: 'list[str]') -> '
                 row=1, col=max(i, j)+1
             )
 
-            # Reverse y-axis
-            fig.update_yaxes(autorange='reversed', row=1, col=max(i, j)+1)
-            fig.update_xaxes(title='Degree Centrality', row=1, col=max(i, j)+1)
-            fig.update_layout(height=500, width=2000,
-                                showlegend=False,
-                                margin=dict(l=0, r=0, t=40, b=0),
-                                yaxis=dict(tickmode='linear'))
-
             # Update hoverinfo
             fig.data[-1].update(
                 hovertemplate='TF: %{y}<br>Degree Centrality: %{x}<extra></extra>',
                 hoverlabel=dict(namelength=0))
+            
+    # Update axes of each subplot
+    for i in range(1, max(len(celltypes), len(timepoints))+1):
+        fig.update_xaxes(title='Degree Centrality', row=1, col=i)
+        fig.update_yaxes(autorange='reversed', tickmode='linear', row=1, col=i)
+
+    fig.update_layout(height=500, width=2000,
+                        showlegend=False,
+                        margin=dict(l=0, r=0, t=40, b=0))
 
     return fig
 

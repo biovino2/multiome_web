@@ -29,6 +29,23 @@ def map_ko(name: str) -> str:
     return name
 
 
+def get_hover_text(cell_type: str, color: str, num: int) -> str:
+    """Returns HTML hover text for a cell type.
+
+    Args:
+        cell_type (str): The cell type.
+        color (str): The color of the cell type.
+        num (int): The number of cells of that type.
+    """
+
+    hover_texts = [
+        f'<span style="color:{color};">{cell_type}</span>' 
+        for _ in range(num)
+    ]
+
+    return hover_texts
+
+
 def plot_single_cells(fig: go.Figure, cell_colors: 'dict[str, str]', umap_data: pd.DataFrame) -> go.Figure:
     """Returns a scatter plot containing single cells mapped in UMAP space.
 
@@ -43,13 +60,19 @@ def plot_single_cells(fig: go.Figure, cell_colors: 'dict[str, str]', umap_data: 
 
     for cell_type, color in cell_colors.items():
         filtered_data = umap_data[umap_data['celltype'] == cell_type]
+        hover_texts = get_hover_text(cell_type, color, len(filtered_data))
+
+        # Add all cells of same type to plot
         fig.add_trace(go.Scatter(
             x=filtered_data[0],
             y=filtered_data[1],
             mode='markers',
             name=cell_type,
             marker=dict(color=color, size=6, opacity=0.7),
-            showlegend=False
+            showlegend=False,
+            customdata=hover_texts,  # Pass the custom HTML hover text
+            hovertemplate='%{customdata}<extra></extra>'
+
         ))
 
     return fig
@@ -78,13 +101,18 @@ def plot_meta_cells(fig: go.Figure, cell_colors: 'dict[str, str]', umap_data: pd
     # Plot metacells
     for cell_type, color in cell_colors.items():
         filtered_mcs = mcs[mcs['celltype'] == cell_type]
+        hover_texts = get_hover_text(cell_type, color, len(filtered_mcs))
+
+        # Add all metacells of same type to plot
         fig.add_trace(go.Scatter(
             x=filtered_mcs[0],
             y=filtered_mcs[1],
             mode='markers',
             name=cell_type,
             marker=dict(color=color, size=10, line=dict(color='black', width=1.25)),
-            showlegend=False
+            showlegend=False,
+            customdata=hover_texts,  # Pass the custom HTML hover text
+            hovertemplate='%{customdata}<extra></extra>'  # Display hover text with HTML styling
         ))
 
     return fig
@@ -178,6 +206,7 @@ def plot_ct_legend(fig: go.Figure, cell_colors: 'dict[str, str]') -> go.Figure:
             mode='markers',
             marker=dict(color=color, size=10),
             showlegend=True,
+            legendgroup='group1',
             name=cell_type
         ))
 
@@ -204,6 +233,7 @@ def plot_arr_legend(fig: go.Figure, arrow_colors: 'dict[str, str]', num_ko: int,
         marker=dict(color=arrow_colors[num_ko], size=10, symbol='triangle-right'),
         line=dict(width=2),
         showlegend=True,
+        legendgroup='group2',
         name=knockout
     ))
 
