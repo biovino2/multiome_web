@@ -15,20 +15,21 @@ def get_adata(path: str, timepoints: 'list[str]'):
     the active regulatory units as genes, but I believe they are actually transcription factors.
 
     Args:
-        path (str): Path to the celloracle .oracle objects.
+        path (str): Path to save the adata.
         timepoints (list): List of timepoints to load.
     """
 
+    oracle_path = '/hpc/projects/data.science/yangjoon.kim/zebrahub_multiome/data/processed_data/09_NMPs_subsetted_v2'
     genes: 'dict[str, list]' = {}
     for timepoint in timepoints:
 
         # Oracle object - has transition probabilities
-        oracle_filename = f'{path}/oracle/14_{timepoint}_in_silico_KO_trans_probs_added.celloracle.oracle'
+        oracle_filename = f'{oracle_path}/14_{timepoint}_in_silico_KO_trans_probs_added.celloracle.oracle'
         co_object = co.load_hdf5(oracle_filename)
         genes[timepoint] = co_object.active_regulatory_genes  # Update list of genes
 
         # Metacell assignments
-        seacells_filename = f'{path}/oracle/{timepoint}_seacells_obs_manual_annotation_30cells.csv'
+        seacells_filename = f'{oracle_path}/metacells/{timepoint}_seacells_obs_manual_annotation_30cells.csv'
         mc_df = pd.read_csv(seacells_filename, index_col=0)
         seacell_mapping = mc_df['SEACell'].to_dict() 
 
@@ -107,19 +108,19 @@ def main():
     """
     """
 
-    path = 'tfko/data'
-    if not os.path.exists(path):
-        os.makedirs(path)
+    save_path = 'src/tfko/data'
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
 
     # Subset large celloracle objects to small adata objects
     timepoints = ['TDR126', 'TDR127', 'TDR128', 'TDR118', 'TDR125', 'TDR124']
-    get_adata(path, timepoints)
+    get_adata(save_path, timepoints)
 
     # Read common tfs and average metacells
-    with open('tfko/data/common_tfs.txt', 'r') as file:  # faster than rerunning get_adata()
+    with open(f'{save_path}/common_tfs.txt', 'r') as file:  # faster than rerunning get_adata()
         common_tfs = file.read().splitlines()
     common_tfs.append('WT_global_nmps')
-    average_metacells(path, timepoints, common_tfs)
+    average_metacells(save_path, timepoints, common_tfs)
 
 
 if __name__ == "__main__":

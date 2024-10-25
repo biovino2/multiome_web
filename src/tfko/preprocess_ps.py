@@ -84,10 +84,11 @@ def compute_row_cosine_similarities(df_wt: pd.DataFrame, df_ko: pd.DataFrame) ->
     return pd.Series(similarities, name="cos_sim")
 
 
-def calc_cos_sims(list_datasets: 'list[str]'):
+def calc_cos_sims(path: str, list_datasets: 'list[str]'):
     """Calculates cosine similarity scores between wildtype and knockout transition probabilities.
 
     Args:
+        path (str): Path to save the dataframes.
         list_datasets (list): List of datasets to process.
     """
 
@@ -95,13 +96,10 @@ def calc_cos_sims(list_datasets: 'list[str]'):
     oracle_path = "/hpc/projects/data.science/yangjoon.kim/zebrahub_multiome/data/processed_data/09_NMPs_subsetted_v2/"
     
     for data_id in tqdm(list_datasets, desc="Processing Datasets"):
-        print(data_id)
     
-        # load the oracle object
-        oracle = co.load_hdf5(oracle_path + f"14_{data_id}_in_silico_KO_trans_probs_added.celloracle.oracle")
-    
-        # load the metacell info
-        metacell = pd.read_csv(oracle_path + f"metacells/{data_id}_seacells_obs_manual_annotation_30cells.csv", index_col=0)
+        # load the oracle object and metacell info
+        oracle = co.load_hdf5(f'{oracle_path}/14_{data_id}_in_silico_KO_trans_probs_added.celloracle.oracle')
+        metacell = pd.read_csv(f'{oracle_path}/metacells/{data_id}_seacells_obs_manual_annotation_30cells.csv', index_col=0)
     
         # add the metacell information to the oracle.adata
         metacell_dict = metacell.SEACell.to_dict()
@@ -143,7 +141,7 @@ def calc_cos_sims(list_datasets: 'list[str]'):
         df_averaged = cosine_sim_df_avg.reset_index()
     
         # save the dataframes
-        df_averaged.to_csv('/hpc/projects/data.science/benjamin.iovino/multiome_web/tfko/data/' + f"cosine_similarity_df_averaged_{data_id}.csv")
+        df_averaged.to_csv(f'{path}/{data_id}_sim.csv')
         dict_cos_sims[data_id] = df_averaged
         dict_cos_sims[f"{data_id}_metacells"] = cosine_sim_df
     
@@ -154,8 +152,9 @@ def main():
     """
     """
 
+    save_path = 'src/tfko/data'
     list_datasets = ['TDR118', 'TDR124','TDR125', 'TDR126', 'TDR127', 'TDR128']
-    calc_cos_sims(list_datasets)
+    calc_cos_sims(save_path, list_datasets)
 
 
 if __name__ == "__main__":

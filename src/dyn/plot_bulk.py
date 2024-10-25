@@ -95,10 +95,10 @@ def plot_gene(gene: str, fig: go.Figure) -> go.Figure:
                     '14hpf': '14 hours post fertilization', '16hpf': '16 hours post fertilization',
                     '19hpf': '19 hours post fertilization', '24hpf': '24 hours post fertilization'}
 
-    x_atac = gex_values[gene]
-    y_rna = atac_values[gene]
-    xerr = gex_errors[gene]
-    yerr_rna = atac_errors[gene]
+    x_atac = atac_values[gene]
+    y_rna = gex_values[gene]
+    x_err = atac_errors[gene]
+    y_err = gex_errors[gene]
 
     # Calculate correlation coefficient
     x_vals = atac_values[gene]
@@ -122,14 +122,14 @@ def plot_gene(gene: str, fig: go.Figure) -> go.Figure:
                      f'<b>Gene Expression:</b> {round(y_rna[i], 5)}'],
             error_x=dict(
                 type='data',
-                array=[xerr[i]],
+                array=[x_err[i]],
                 visible=True,
                 thickness=1,
                 width=2
             ),
             error_y=dict(
                 type='data',
-                array=[yerr_rna[i]],
+                array=[y_err[i]],
                 visible=True,
                 thickness=1,
                 width=2
