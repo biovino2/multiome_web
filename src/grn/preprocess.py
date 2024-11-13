@@ -26,10 +26,11 @@ def load_links(path: str, files: 'list[str]') -> 'dict[str: co.Links]':
     """
 
     dict_links = {}
+    path = '/hpc/projects/data.science/yangjoon.kim/zebrahub_multiome/data/processed_data/09_NMPs_subsetted_v2'
     for dataset in files:
         if dataset.endswith(".txt"):
             continue
-        file_name = f"{path}/links/08_{dataset}_celltype_GRNs.celloracle.links"
+        file_name = f"{path}/{dataset}/08_{dataset}_celltype_GRNs.celloracle.links"
         dict_links[dataset] = co.load_hdf5(file_name)
 
     return dict_links
@@ -57,154 +58,96 @@ def get_dicts(links: 'dict[str: co.Links]') -> 'tuple[dict, dict]':
     return merged_score, filtered_GRNs
 
 
-def process_celltypes(path: str, timepoints: 'list[str]', celltypes: 'list[str]', filtered_GRNs: 'dict[str: dict[str: pd.Dataframe]]'):
-    """Saves clustered heatmaps to csv files by cell type for each time point.
+def cluster_counts(df_grn: pd.DataFrame) -> pd.DataFrame:
+    """Returns a clustered dataframe of counts. Rows are clustered by TF family and clustered
+    within each family.
 
     Args:
-        path (str): Path to save the csv files.
-        timepoints (list[str]): List of timepoints.
-        filtered_GRNs (dict[str: dict[str: pd.Dataframe]]): Dictionary of filtered GRNs.
+        df_grn: Dataframe of counts.
+
+    Returns:
+        final_data: Clustered dataframe
     """
 
-    abbr = get_timepoints_abbr()
+    df_grn.fillna(0, inplace=True)
+    df_grn = df_grn.loc[(df_grn == 0).sum(axis=1) < 5]
 
-    # For each celltype, get counts for each timepoint and linkages for all timepoints
-    vmax, vmin = 0.1, -0.1
-    for ct in celltypes:
+    # Take family of TF with regex
+    reg = r'^(.*?)(?=\d)'
+    df_grn['TF'] = df_grn.index.str.split('_').str[0]
+    df_grn['TF_family'] = df_grn['TF'].str.extract(reg)
 
-        # Step 1. collect all sources and targets across all timepoints
-        all_sources = set()
-        all_targets = set()
-        for timepoint in timepoints:
-            df = filtered_GRNs[timepoint][ct]
-            all_sources.update(df['source'].unique())
-            all_targets.update(df['target'].unique())
+    # If NaN in TF_family, just take name of TF
+    df_grn['TF_family'] = df_grn['TF_family'].fillna(df_grn['TF'])
+    df_grn['TF_family'] = df_grn['TF_family'].str[:3]
 
-        # Step 2: Recreate each df_counts DataFrame
-        df_counts_union = {}
-        for timepoint in timepoints:
-            df = filtered_GRNs[timepoint][ct]
+    # Order TF's by frequency
+    tf_counts = df_grn['TF_family'].value_counts()
+    ordered_tfs = tf_counts.index
+
+    # Cluster each TF family separately
+    clustered_subgroups = {}
+    for tf_name in ordered_tfs:
+        tf_data = df_grn[df_grn['TF_family'] == tf_name].drop(columns=['TF_family', 'TF'])
+        if tf_data.shape[0] == 1:  # Skip if row has only one entry, can't cluster
+            continue
+        clustermap = sns.clustermap(tf_data, row_cluster=True, col_cluster=False)
     
-            # Pivot the original DataFrame
-            df_pivot = df.pivot(index='target',
-                                columns='source',
-                                values='coef_mean').reindex(index=all_targets,
-                                                            columns=all_sources).fillna(0)
-            df_counts_union[timepoint] = df_pivot
+        # Retrieve the ordered rows based on clustering
+        ordered_indices = clustermap.dendrogram_row.reordered_ind
+        clustered_tf_data = tf_data.iloc[ordered_indices]
+        clustered_tf_data = clustered_tf_data.iloc[::-1]
+        clustered_subgroups[tf_name] = clustered_tf_data
 
-        # compute the linkages from the first and the last timepoints, by augmenting the "time" components
-        df_counts1 = df_counts_union["TDR126"]
-        df_counts2 = df_counts_union["TDR127"]
-        df_counts3 = df_counts_union["TDR128"]
-        df_counts4 = df_counts_union["TDR118"]
-        df_counts5 = df_counts_union["TDR125"]
-        df_counts6 = df_counts_union["TDR124"]
+    # Concatenate clustered subgroups in the order of TF frequency
+    final_data = pd.concat(clustered_subgroups.values())
+    final_data = final_data.iloc[::-1]
 
-        # concatenate over the rows/cols
-        df_counts_rows = pd.concat([df_counts1, df_counts2, df_counts3,
-                            df_counts4, df_counts5, df_counts6], axis=1)
-        df_counts_cols = pd.concat([df_counts1, df_counts2, df_counts3,
-                            df_counts4, df_counts5, df_counts6], axis=0)
-        
-        # create a clustered heatmap for the "rows"
-        g1 = sns.clustermap(df_counts_rows, method='ward', metric='euclidean', 
-                    cmap='coolwarm', standard_scale=None,
-                    row_cluster=True, col_cluster=True, 
-                    xticklabels=False, yticklabels=False, 
-                    vmax=vmax, vmin=vmin)
-
-        # create a clustered heatmap for the "cols"
-        g2 = sns.clustermap(df_counts_cols, method='ward', metric='euclidean', 
-                    cmap='coolwarm', standard_scale=None,
-                    row_cluster=True, col_cluster=True, 
-                    xticklabels=2, yticklabels=2, 
-                    vmax=vmax, vmin=vmin)
-
-        # Reorder the dataframes
-        row_order = g1.dendrogram_row.reordered_ind
-        col_order = g2.dendrogram_col.reordered_ind
-        for timepoint in timepoints:
-            df_counts_union[timepoint] = df_counts_union[timepoint].iloc[row_order, col_order]
-
-        # Save reordered dataframes
-        if not os.path.exists(f'{path}/ct'):
-            os.makedirs(f'{path}/ct')
-        if not os.path.exists(f'{path}/ct/{ct}'):
-            os.makedirs(f'{path}/ct/{ct}')
-        for timepoint in timepoints:
-            df_counts_union[timepoint].to_csv(f"{path}/ct/{ct}/{ct}_{abbr[timepoint]}.csv")
+    return final_data
 
 
-def process_timepoints(path, timepoints, celltypes, filtered_GRNs):
+def cluster_timepoints(filtered_GRNs: dict, path: str, timepoints: 'list[str]', celltypes: 'list[str]'):
     """
     """
 
-    abbr = get_timepoints_abbr()
-
-    # For each timepoint, get counts for each celltype and linkages for all celltypes
-    vmax, vmin = 0.1, -0.1
+    if not os.path.exists(f'{path}/tp'):
+        os.makedirs(f'{path}/tp')
     for tp in timepoints:
+        df_grn = pd.DataFrame()
+        for ct in celltypes:
+            df = filtered_GRNs[tp][ct]
 
-        all_sources = set()
-        all_targets = set()
+            # Refactor dataframe for source_target and coef_mean
+            df['TF-gene'] = df['source'] + '_' + df['target']
+            df_filt = df[['TF-gene', 'coef_mean']].set_index('TF-gene')
+            df_filt.rename(columns={'coef_mean': ct}, inplace=True)
+            df_grn = pd.concat([df_grn, df_filt], axis=1)
 
-        for celltype in celltypes:
-            df = filtered_GRNs[tp][celltype]
-            all_sources.update(df['source'].unique())
-            all_targets.update(df['target'].unique())
+        # Cluster and save to csv
+        df_grn_clustered = cluster_counts(df_grn)
+        df_grn_clustered.to_csv(f'{path}/tp/{tp}.csv')
 
-        # Step 2: Recreate each df_counts DataFrame
-        df_counts_union = {}
 
-        for celltype in celltypes:
-            df = filtered_GRNs[tp][celltype]
-            # Pivot the original DataFrame
-            df_pivot = df.pivot(index='target', columns='source', values='coef_mean').reindex(index=all_targets, columns=all_sources).fillna(0)
-            df_counts_union[celltype] = df_pivot
+def cluster_celltypes(filtered_GRNs: dict, path: str, timepoints: 'list[str]', celltypes: 'list[str]'):
+    """
+    """
 
-        # compute the linkages from the first and the last timepoints, by augmenting the "time" components
-        df_counts1 = df_counts_union["neural_posterior"]
-        df_counts2 = df_counts_union["spinal_cord"]
-        df_counts3 = df_counts_union["NMPs"]
-        df_counts4 = df_counts_union["tail_bud"]
-        df_counts5 = df_counts_union["PSM"]
-        df_counts6 = df_counts_union["somites"]
+    if not os.path.exists(f'{path}/ct'):
+        os.makedirs(f'{path}/ct')
+    for ct in celltypes:
+        df_grn = pd.DataFrame()
+        for tp in timepoints:
+            df = filtered_GRNs[tp][ct]
 
-        # concatenate over the columns
-        df_counts_rows = pd.concat([df_counts1, df_counts2, df_counts3,
-                            df_counts4, df_counts5, df_counts6], axis=1)
+            # Refactor dataframe for source_target and coef_mean
+            df['TF-gene'] = df['source'] + '_' + df['target']
+            df_filt = df[['TF-gene', 'coef_mean']].set_index('TF-gene')
+            df_filt.rename(columns={'coef_mean': tp}, inplace=True)
+            df_grn = pd.concat([df_grn, df_filt], axis=1)
 
-        # concatenate over the rows
-        df_counts_cols = pd.concat([df_counts1, df_counts2, df_counts3,
-                            df_counts4, df_counts5, df_counts6], axis=0)
-
-        # create a clustered heatmap for the "rows"
-        g1 = sns.clustermap(df_counts_rows, method='ward', metric='euclidean', 
-                    cmap='coolwarm', standard_scale=None,
-                    row_cluster=True, col_cluster=True, 
-                    xticklabels=False, yticklabels=False, 
-                    vmax=vmax, vmin=vmin)
-
-        # create a clustered heatmap for the "cols"
-        g2 = sns.clustermap(df_counts_cols, method='ward', metric='euclidean', 
-                    cmap='coolwarm', standard_scale=None,
-                    row_cluster=True, col_cluster=True, 
-                    xticklabels=False, yticklabels=False, 
-                    vmax=vmax, vmin=vmin)
-        
-        # Reorder the dataframes
-        row_order = g1.dendrogram_row.reordered_ind
-        col_order = g2.dendrogram_col.reordered_ind
-        for celltype in celltypes:
-            df_counts_union[celltype] = df_counts_union[celltype].iloc[row_order, col_order]
-
-        # Save reordered dataframes
-        if not os.path.exists(f'{path}/tp'):
-            os.makedirs(f'{path}/tp')
-        if not os.path.exists(f'{path}/tp/{abbr[tp]}'):
-            os.makedirs(f'{path}/tp/{abbr[tp]}')
-        for celltype in celltypes:
-            df_counts_union[celltype].to_csv(f"{path}/tp/{abbr[tp]}/{abbr[tp]}_{celltype}.csv")
+        # Cluster and save to csv
+        df_grn_clustered = cluster_counts(df_grn)
+        df_grn_clustered.to_csv(f'{path}/ct/{ct}.csv')
 
 
 def get_scores(path: str, metric: str, top_n: int):
@@ -247,15 +190,16 @@ def main():
     if not os.path.exists(path):
         os.makedirs(path)
     timepoints = ['TDR126', 'TDR127', 'TDR128', 'TDR118', 'TDR125', 'TDR124']
-    celltypes = ['NMPs', 'PSM', 'neural_posterior', 'somites', 'spinal_cord', 'tail_bud']
+    celltypes = ['neural_posterior', 'spinal_cord', 'NMPs', 'tail_bud', 'PSM', 'somites']
     
     #  Load the pruned links and get network scores + GRNs
     links = load_links(path, timepoints)
     _, filtered_GRNs = get_dicts(links)
-    process_celltypes(path, timepoints, celltypes, filtered_GRNs)
-    process_timepoints(path, timepoints, celltypes, filtered_GRNs)
-    get_scores(path, 'degree_centrality_all', 30)
+    cluster_timepoints(filtered_GRNs, path, timepoints, celltypes)
+    cluster_celltypes(filtered_GRNs, path, timepoints, celltypes)
+    
 
+    '''
     # Save data as zipfile for download
     with zipfile.ZipFile(f'{path}/data.zip', 'w') as z:
         for root, _, files in os.walk(path):
@@ -263,6 +207,7 @@ def main():
                 continue
             for file in files:
                 z.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), path))
+    '''
 
 
 if __name__ == '__main__':
