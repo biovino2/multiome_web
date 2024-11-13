@@ -5,118 +5,58 @@ Ben Iovino  08/09/24    CZ-Biohub
 
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import streamlit as st
 from util import get_timepoints_abbr
 
 
-def load_data(path: str, celltype: str, timepoint: str, control: str) -> 'pd.DataFrame':
+def load_data(path: str, celltype: str, timepoint: str) -> 'pd.DataFrame':
     """Returns counts for celltype at a timepoint.
 
     Args:
         path (str): The path to the data.
         celltype (str): The celltype to load.
         timepoint (str): The timepoint to load.
-        control (str): The control variable (time point or cell type)
 
     Returns:
-        df_counts (pd.DataFrame): The counts for the celltype at the timepoint.
+        df_grn (pd.DataFrame): The GRN for the given celltype and timepoint.
     """
 
     abbr = get_timepoints_abbr()
 
     # Plotting multiple time points for each cell type
-    if control == 'timepoint':
-        path += '/ct'  # this is very confusing
-        df_counts = pd.read_csv(f"{path}/{celltype}/{celltype}_{abbr[timepoint]}.csv", index_col=0)
+    if timepoint:
+        df_grn = pd.read_csv(f"{path}/tp/{abbr[timepoint]}.csv", index_col=0)
 
     # Plotting multiple cell types for each time point
-    if control == 'celltype':
-        path += '/tp'  # still confusing
-        df_counts = pd.read_csv(f"{path}/{abbr[timepoint]}/{abbr[timepoint]}_{celltype}.csv", index_col=0)
-    df_counts = df_counts.transpose()  # genes on y-axis, TFs on x-axis
+    if celltype:
+        df_grn = pd.read_csv(f"{path}/ct/{celltype}.csv", index_col=0)
 
-    return df_counts
+    return df_grn
 
 
-def plot_grn(path: str, celltype: str, timepoint: str, control: str) -> 'go.Heatmap':
+def plot_grn(path: str, celltype: str, timepoint: str) -> 'go.Heatmap':
     """Returns a plotly Heatmap of the GRN.
 
     Args:
         path (str): The path to the data.
         celltype (str): The celltype to plot.
         timepoint (str): The timepoint to plot.
-        control (str): The control variable (time point or cell type)
 
     Returns:
         fig (go.Heatmap): The plotly figure.
     """
 
     # Load data
-    df_counts = load_data(path, celltype, timepoint, control)
+    df_grn = load_data(path, celltype, timepoint)
 
     # Create heatmap figure
     fig = go.Heatmap(
-        z=df_counts.values,
-        x=df_counts.columns,
-        y=df_counts.index,
+        z=df_grn.values,
+        x=df_grn.columns,
+        y=df_grn.index,
         colorscale='balance',
         zmin=-0.1, zmax=0.1
     )
-
-    return fig
-
-
-def plot_scores(path: str, celltypes: 'list[str]', timepoints: 'list[str]') -> 'go.Heatmap':
-    """Returns a scatter plot of the network scores.
-
-    Args:
-        path (str): The path to the data.
-        celltypes (list[str]): The list of cell types.
-        timepoint (list[str]): The list of time points.
-    """
-
-    # Create figure depending on size of lists
-    fig = make_subplots(
-        rows = 1,
-        cols = max(len(celltypes), len(timepoints)),
-    )
-
-    # Change timepoints to abbreviations
-    timepoints = [f'{tp.split()[0]}hpf' for tp in timepoints]
-
-    for i, ct in enumerate(celltypes):
-        for j, tp in enumerate(timepoints):
-            df_scores = pd.read_csv(f"{path}/scores/{tp}/{ct}.csv", index_col=0)
-
-            # Create scatter plot where x is score, y is gene name
-            fig.add_trace(
-                go.Scatter(
-                    x=df_scores['degree_centrality_all'],
-                    y=df_scores.index,
-                    mode='markers',
-                    marker=dict(
-                        size=10,
-                        color=df_scores['degree_centrality_all'],
-                    ),
-                    name=f"{ct} {tp}"
-                ),
-                row=1, col=max(i, j)+1
-            )
-
-            # Update hoverinfo
-            fig.data[-1].update(
-                hovertemplate='TF: %{y}<br>Degree Centrality: %{x}<extra></extra>',
-                hoverlabel=dict(namelength=0))
-            
-    # Update axes of each subplot
-    for i in range(1, max(len(celltypes), len(timepoints))+1):
-        fig.update_xaxes(title='Degree Centrality', row=1, col=i)
-        fig.update_yaxes(autorange='reversed', tickmode='linear', row=1, col=i)
-
-    fig.update_layout(height=500, width=2000,
-                        showlegend=False,
-                        margin=dict(l=0, r=0, t=40, b=0))
 
     return fig
 

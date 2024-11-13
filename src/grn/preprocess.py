@@ -110,6 +110,7 @@ def cluster_timepoints(filtered_GRNs: dict, path: str, timepoints: 'list[str]', 
     """
     """
 
+    tp_dict = get_timepoints_abbr()
     if not os.path.exists(f'{path}/tp'):
         os.makedirs(f'{path}/tp')
     for tp in timepoints:
@@ -125,13 +126,14 @@ def cluster_timepoints(filtered_GRNs: dict, path: str, timepoints: 'list[str]', 
 
         # Cluster and save to csv
         df_grn_clustered = cluster_counts(df_grn)
-        df_grn_clustered.to_csv(f'{path}/tp/{tp}.csv')
+        df_grn_clustered.to_csv(f'{path}/tp/{tp_dict[tp]}.csv')
 
 
 def cluster_celltypes(filtered_GRNs: dict, path: str, timepoints: 'list[str]', celltypes: 'list[str]'):
     """
     """
 
+    tp_dict = get_timepoints_abbr()
     if not os.path.exists(f'{path}/ct'):
         os.makedirs(f'{path}/ct')
     for ct in celltypes:
@@ -142,7 +144,7 @@ def cluster_celltypes(filtered_GRNs: dict, path: str, timepoints: 'list[str]', c
             # Refactor dataframe for source_target and coef_mean
             df['TF-gene'] = df['source'] + '_' + df['target']
             df_filt = df[['TF-gene', 'coef_mean']].set_index('TF-gene')
-            df_filt.rename(columns={'coef_mean': tp}, inplace=True)
+            df_filt.rename(columns={'coef_mean': tp_dict[tp]}, inplace=True)
             df_grn = pd.concat([df_grn, df_filt], axis=1)
 
         # Cluster and save to csv
@@ -197,7 +199,6 @@ def main():
     _, filtered_GRNs = get_dicts(links)
     cluster_timepoints(filtered_GRNs, path, timepoints, celltypes)
     cluster_celltypes(filtered_GRNs, path, timepoints, celltypes)
-    
 
     '''
     # Save data as zipfile for download
