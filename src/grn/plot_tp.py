@@ -96,7 +96,7 @@ def make_figure(path: str, timepoints: dict[str:str]):
 
     # Generate heatmap for each subplot
     for i, timepoint in enumerate(selected_timepoints):
-        plot = plot_grn(path, celltype=None, timepoint=timepoints[timepoint])
+        plot, fams = plot_grn(path, celltype=None, timepoint=timepoints[timepoint])
         fig.add_trace(plot, row=1, col=i+1)
 
         # Update hover template and axis labels
@@ -106,7 +106,10 @@ def make_figure(path: str, timepoints: dict[str:str]):
             '<b>Strength:</b> %{z}<extra></extra>',
         hoverlabel=dict(namelength=0))
         fig.update_xaxes(tickfont=dict(size=12), row=1, col=i+1)
-        fig.update_yaxes(tickfont=dict(size=12), row=1, col=i+1, showticklabels=False)
+        fig.update_yaxes(tickfont=dict(size=12),
+                        tickvals=list(fams.values()),
+                        ticktext=list(fams.keys()),
+                        row=1, col=i+1)
 
     # Figure layout
     fig.update_layout(height=500, width=2000, showlegend=False, margin=dict(l=0, r=0, t=50, b=0))

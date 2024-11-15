@@ -72,42 +72,44 @@ def cluster_counts(df_grn: pd.DataFrame) -> pd.DataFrame:
     df_grn.fillna(0, inplace=True)
     df_grn = df_grn.loc[(df_grn == 0).sum(axis=1) < 5]
 
-    # Take family of TF with regex
-    reg = r'^(.*?)(?=\d)'
+    # Take family of TF and order by frequency
+    r'^[A-Za-z]{0,3}|^[A-Za-z]*?\d'
     df_grn['TF'] = df_grn.index.str.split('_').str[0]
-    df_grn['TF_family'] = df_grn['TF'].str.extract(reg)
-
-    # If NaN in TF_family, just take name of TF
-    df_grn['TF_family'] = df_grn['TF_family'].fillna(df_grn['TF'])
-    df_grn['TF_family'] = df_grn['TF_family'].str[:3]
-
-    # Order TF's by frequency
+    df_grn['TF_family'] = df_grn['TF'].str.extract(r'(^[A-Za-z]{0,3}|^[A-Za-z]*?\d)')
     tf_counts = df_grn['TF_family'].value_counts()
     ordered_tfs = tf_counts.index
 
     # Cluster each TF family separately
     clustered_subgroups = {}
     for tf_name in ordered_tfs:
-        tf_data = df_grn[df_grn['TF_family'] == tf_name].drop(columns=['TF_family', 'TF'])
-        if tf_data.shape[0] == 1:  # Skip if row has only one entry, can't cluster
+        df_tf = df_grn[df_grn['TF_family'] == tf_name].drop(columns=['TF_family', 'TF'])
+        if df_tf.shape[0] == 1:  # Skip if row has only one entry, can't cluster
             continue
-        clustermap = sns.clustermap(tf_data, row_cluster=True, col_cluster=False)
+        clustermap = sns.clustermap(df_tf, row_cluster=True, col_cluster=False)
     
         # Retrieve the ordered rows based on clustering
         ordered_indices = clustermap.dendrogram_row.reordered_ind
-        clustered_tf_data = tf_data.iloc[ordered_indices]
+        clustered_tf_data = df_tf.iloc[ordered_indices]
         clustered_tf_data = clustered_tf_data.iloc[::-1]
         clustered_subgroups[tf_name] = clustered_tf_data
 
     # Concatenate clustered subgroups in the order of TF frequency
-    final_data = pd.concat(clustered_subgroups.values())
-    final_data = final_data.iloc[::-1]
+    df_all = pd.concat(clustered_subgroups.values())
+    df_all = df_all.iloc[::-1]
+    df_all['TF'] = df_all.index.str.split('_').str[0]
+    df_all['TF_family'] = df_all['TF'].str.extract(r'(^[A-Za-z]{0,3}|^[A-Za-z]*?\d)')
 
-    return final_data
+    return df_all
 
 
 def cluster_timepoints(filtered_GRNs: dict, path: str, timepoints: 'list[str]', celltypes: 'list[str]'):
-    """
+    """Saves a pandas dataframe of the GRN for each time point across all cell types.
+
+    Args:
+        filtered_GRNs (dict): Dictionary of filtered GRNs.
+        path (str): Path to save the csv files.
+        timepoints (list[str]): List of time points.
+        celltypes (list[str]): List of cell types.
     """
 
     tp_dict = get_timepoints_abbr()
@@ -130,7 +132,13 @@ def cluster_timepoints(filtered_GRNs: dict, path: str, timepoints: 'list[str]', 
 
 
 def cluster_celltypes(filtered_GRNs: dict, path: str, timepoints: 'list[str]', celltypes: 'list[str]'):
-    """
+    """Saves a pandas dataframe of the GRN for each cell type across all time points.
+
+    Args:
+        filtered_GRNs (dict): Dictionary of filtered GRNs.
+        path (str): Path to save the csv files.
+        timepoints (list[str]): List of time points.
+        celltypes (list[str]): List of cell types.
     """
 
     tp_dict = get_timepoints_abbr()

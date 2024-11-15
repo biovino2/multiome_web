@@ -52,13 +52,18 @@ def plot_grn(path: str, celltype: str, timepoint: str) -> 'go.Heatmap':
     # Create heatmap figure
     fig = go.Heatmap(
         z=df_grn.values,
-        x=df_grn.columns,
+        x=df_grn.columns[:-2],  # last two columns are TF names
         y=df_grn.index,
         colorscale='balance',
         zmin=-0.1, zmax=0.1
     )
 
-    return fig
+    # Change y-tick labels so that they occur when a new TF family starts
+    fams = {}
+    for i, index in enumerate(df_grn.index):
+        fams[df_grn.loc[index, 'TF_family']] = i
+
+    return fig, fams
 
 
 def save_config() -> dict:
