@@ -52,7 +52,7 @@ def plot_grn(path: str, celltype: str, timepoint: str) -> 'go.Heatmap':
     # Create heatmap figure
     fig = go.Heatmap(
         z=df_grn.values,
-        x=df_grn.columns[:-2],  # last two columns are TF names
+        x=df_grn.columns[:-3],  # last two columns are TF names
         y=df_grn.index,
         colorscale='balance',
         zmin=-0.1, zmax=0.1

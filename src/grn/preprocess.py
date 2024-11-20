@@ -59,14 +59,14 @@ def get_dicts(links: 'dict[str: co.Links]') -> 'tuple[dict, dict]':
 
 
 def cluster_counts(df_grn: pd.DataFrame) -> pd.DataFrame:
-    """Returns a clustered dataframe of counts. Rows are clustered by TF family and clustered
+    """Returns a clustered dataframe. Rows are ordered by TF family and clustering is performed
     within each family.
 
     Args:
-        df_grn: Dataframe of counts.
+        df_grn: Dataframe with rows as TF-gene pairs and cols as cell types/time points.
 
     Returns:
-        final_data: Clustered dataframe
+        df_all: Clustered dataframe
     """
 
     df_grn.fillna(0, inplace=True)
@@ -102,6 +102,51 @@ def cluster_counts(df_grn: pd.DataFrame) -> pd.DataFrame:
     return df_all
 
 
+def order_tfs(df_grn: pd.DataFrame, category: str) -> pd.DataFrame:
+    """Returns a dataframe similar to the input, but with TFs ordered by time point/cell type
+    within each family.
+
+    Args:
+        df_grn: Dataframe with rows as TF-gene pairs and cols as cell types/time points.
+        category: 'timepoint' or 'celltype'.
+
+    Returns:
+        df_grn_max: Dataframe with TFs ordered by time point/cell type within each family.
+    """
+
+    # Change column names to integers for ordering (necessary for cell types)
+    if category == 'timepoint':
+        mapping1 = {'10hpf': 1, '12hpf': 2, '14hpf': 3, '16hpf': 4, '19hpf': 5, '24hpf': 6}
+        mapping2 = {1: '10hpf', 2: '12hpf', 3: '14hpf', 4: '16hpf', 5: '19hpf', 6: '24hpf'}
+    if category == 'celltype':
+        mapping1 = {'neural_posterior': 1, 'spinal_cord': 2, 'NMPs': 3, 'tail_bud': 4, 'PSM': 5, 'somites': 6}
+        mapping2 = {1: 'neural_posterior', 2: 'spinal_cord', 3: 'NMPs', 4: 'tail_bud', 5: 'PSM', 6: 'somites'}
+    df_grn.rename(columns=mapping1, inplace=True)
+
+    # Sum up values for each TF (count any non-zero as 1) and find the max for ordering
+    df_sum = pd.DataFrame()
+    df_sum = df_grn.groupby('TF').apply(lambda x: (x.iloc[:, :] != 0).sum()).drop(columns=['TF', 'TF_family'])
+    df_sum['max'] = df_sum.idxmax(axis=1)
+
+    # Map max value to original dataframe
+    df_grn_max = df_grn.copy()
+    df_grn_max['max'] = df_grn['TF'].map(df_sum['max'])
+
+    # Order by max value within each TF family
+    df_grn_ordered = pd.DataFrame()
+    for tf_fam in df_grn_max['TF_family'].unique():
+    
+        # Copy rows with same TF family and order within family by max value
+        df_tf_fam = df_grn_max[df_grn_max['TF_family'] == tf_fam]
+        df_tf_fam = df_tf_fam.sort_values(by='max')[::-1]
+        df_grn_ordered = pd.concat([df_grn_ordered, df_tf_fam])  # Maintain family structure in new df
+
+    # Reverse mappings
+    df_grn_ordered.rename(columns=mapping2, inplace=True)
+
+    return df_grn_ordered
+
+
 def cluster_timepoints(filtered_GRNs: dict, path: str, timepoints: 'list[str]', celltypes: 'list[str]'):
     """Saves a pandas dataframe of the GRN for each time point across all cell types.
 
@@ -128,7 +173,8 @@ def cluster_timepoints(filtered_GRNs: dict, path: str, timepoints: 'list[str]', 
 
         # Cluster and save to csv
         df_grn_clustered = cluster_counts(df_grn)
-        df_grn_clustered.to_csv(f'{path}/tp/{tp_dict[tp]}.csv')
+        df_grn_ordered = order_tfs(df_grn_clustered, 'timepoint')
+        df_grn_ordered.to_csv(f'{path}/tp/{tp_dict[tp]}.csv')
 
 
 def cluster_celltypes(filtered_GRNs: dict, path: str, timepoints: 'list[str]', celltypes: 'list[str]'):
@@ -157,7 +203,8 @@ def cluster_celltypes(filtered_GRNs: dict, path: str, timepoints: 'list[str]', c
 
         # Cluster and save to csv
         df_grn_clustered = cluster_counts(df_grn)
-        df_grn_clustered.to_csv(f'{path}/ct/{ct}.csv')
+        df_grn_ordered = order_tfs(df_grn_clustered, 'celltype')
+        df_grn_ordered.to_csv(f'{path}/ct/{ct}.csv')
 
 
 def get_scores(path: str, metric: str, top_n: int):
