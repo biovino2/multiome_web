@@ -58,19 +58,21 @@ def get_dicts(links: 'dict[str: co.Links]') -> 'tuple[dict, dict]':
     return merged_score, filtered_GRNs
 
 
-def cluster_counts(df_grn: pd.DataFrame) -> pd.DataFrame:
+def cluster_counts(df_grn: pd.DataFrame, drop: int) -> pd.DataFrame:
     """Returns a clustered dataframe. Rows are ordered by TF family and clustering is performed
     within each family.
 
     Args:
         df_grn: Dataframe with rows as TF-gene pairs and cols as cell types/time points.
+        drop: Minimum number of non-zero entries in a row (TF-gene) to keep it in the dataframe.
 
     Returns:
         df_all: Clustered dataframe
     """
 
     df_grn.fillna(0, inplace=True)
-    df_grn = df_grn.loc[(df_grn == 0).sum(axis=1) < 5]
+    if drop:
+        df_grn = df_grn.loc[(df_grn == 0).sum(axis=1) < 6-drop]  # works for 6 columns..must fix
 
     # Take family of TF and order by frequency
     r'^[A-Za-z]{0,3}|^[A-Za-z]*?\d'
@@ -172,7 +174,7 @@ def cluster_timepoints(filtered_GRNs: dict, path: str, timepoints: 'list[str]', 
             df_grn = pd.concat([df_grn, df_filt], axis=1)
 
         # Cluster and save to csv
-        df_grn_clustered = cluster_counts(df_grn)
+        df_grn_clustered = cluster_counts(df_grn, None)
         df_grn_ordered = order_tfs(df_grn_clustered, 'timepoint')
         df_grn_ordered.to_csv(f'{path}/tp/{tp_dict[tp]}.csv')
 
@@ -202,7 +204,7 @@ def cluster_celltypes(filtered_GRNs: dict, path: str, timepoints: 'list[str]', c
             df_grn = pd.concat([df_grn, df_filt], axis=1)
 
         # Cluster and save to csv
-        df_grn_clustered = cluster_counts(df_grn)
+        df_grn_clustered = cluster_counts(df_grn, None)
         df_grn_ordered = order_tfs(df_grn_clustered, 'celltype')
         df_grn_ordered.to_csv(f'{path}/ct/{ct}.csv')
 
