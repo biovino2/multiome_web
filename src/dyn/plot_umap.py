@@ -36,6 +36,37 @@ def umap_color_dict() -> dict:
     return color_dict
 
 
+def st_setup():
+    """Initializes streamlit session.
+    """
+
+    st.set_page_config(layout="wide")
+    st.markdown("# Gene UMAP")
+    st.write('')
+    
+    # Remove extra space at top of the page
+    st.markdown(
+    """
+    <style>
+        /* Remove padding from main block */
+        .block-container {
+            padding-top: 2rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+    )
+
+    # Initialize drop down box
+    cluster_ids = umap_color_dict().keys()
+    option = st.sidebar.selectbox(
+        'Select a cluster',
+        cluster_ids,
+    )
+
+    return option
+
+
 def plot_umap(df_umap: pd.DataFrame):
     """Plots gene UMAP.
     
@@ -52,7 +83,7 @@ def plot_umap(df_umap: pd.DataFrame):
         y=df_umap['umap2'],
         mode='markers',
         marker=dict(
-            size=4,
+            size=5,
             color=df_umap['color'],
         ),
         hoverinfo='text',
@@ -79,35 +110,21 @@ def plot_umap(df_umap: pd.DataFrame):
     return fig
 
 
-def st_setup():
-    """Initializes streamlit session.
-    """
-
-    st.set_page_config(layout="wide")
-    st.markdown("# Gene UMAP")
-    st.write('')
-    
-    # Remove extra space at top of the page
-    st.markdown(
-    """
-    <style>
-        /* Remove padding from main block */
-        .block-container {
-            padding-top: 2rem;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True
-    )
-
 ### Main
 
 # Load data and set up streamlit
 path = os.path.dirname(os.path.abspath(__file__))+'/data'
 with open(f'{path}/umap.csv', 'r') as f:
     df_umap = pd.read_csv(f, index_col=0)
-st_setup()
+option = st_setup()
 
 # Plot UMAP
 fig = plot_umap(df_umap)
 st.plotly_chart(fig, use_container_width=True)
+
+# Display cluster enrichments
+enrich_dir = "src/dyn/data/enrichr"
+df = pd.read_csv(f"{enrich_dir}/cluster_{option}.txt", sep="\t")
+df_subset = df[df["P-value"] < 0.05][["Term", "Genes"]]
+st.write(f"Cluster {option} enrichments:")
+st.write(df_subset)
