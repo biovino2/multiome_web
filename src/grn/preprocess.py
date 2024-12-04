@@ -14,11 +14,10 @@ from util import get_timepoints_abbr
 sys.setrecursionlimit(10000)
 
 
-def load_links(path: str, files: 'list[str]') -> 'dict[str: co.Links]':
+def load_links(files: 'list[str]') -> 'dict[str: co.Links]':
     """Returns a dictionary of cell oracle links objects.
 
     Args:
-        path: Path to the links.
         files: List of file names to load.
 
     Returns:
@@ -252,7 +251,7 @@ def main():
     celltypes = ['neural_posterior', 'spinal_cord', 'NMPs', 'tail_bud', 'PSM', 'somites']
     
     #  Load the pruned links and get network scores + GRNs
-    links = load_links(path, timepoints)
+    links = load_links(timepoints)
     _, filtered_GRNs = get_dicts(links)
     cluster_timepoints(filtered_GRNs, path, timepoints, celltypes)
     cluster_celltypes(filtered_GRNs, path, timepoints, celltypes)
