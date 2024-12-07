@@ -14,7 +14,7 @@ def main():
         st.Page('plot_ccan.py', title='Peaks'),
         st.Page('plot_corr.py', title='Correlation (Cell Type)'),
         st.Page('plot_bulk.py', title='Correlation (Bulk)'),
-        st.Page('plot_umap.py', title='UMAP'),
+        st.Page('plot_umap.py', title='Gene UMAP'),
         ])
     pg.run()
 

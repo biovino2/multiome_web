@@ -110,6 +110,57 @@ def plot_umap(df_umap: pd.DataFrame):
     return fig
 
 
+def plot_enrichments(df_subset: pd.DataFrame, cluster: int):
+    """
+    """
+
+    df_subset = df_subset.sort_values('Combined Score').tail(10)
+
+    # Define color map matching the UMAP
+    cluster_colors = {
+        0: '#1f77b4',  # blue
+        1: '#ff7f0e',  # orange
+        2: '#2ca02c',  # green
+        3: '#d62728',  # red
+        4: '#9467bd',  # purple
+        5: '#8c564b',  # brown
+        6: '#e377c2',  # pink
+        7: '#bcbd22',  # olive
+        8: '#17becf',  # cyan
+        9: '#aec7e8',  # light blue
+        10: '#ffbb78', # light orange
+        11: '#98df8a', # light green
+        12: '#ff9896', # light red
+        13: '#c5b0d5'  # light purple
+    }
+    nonsig_color = '#F5F5DC'  # light beige
+
+    colors = [nonsig_color if p > 0.05 else cluster_colors[cluster] for p in df_subset['P-value']]
+
+    # Create the horizontal bar plot
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=df_subset['Combined Score'],
+            y=df_subset['Term'],
+            orientation='h',
+            marker=dict(color=colors, opacity=0.6),
+            text=df_subset['Genes'],
+            insidetextanchor='start',
+        )
+    )
+
+    # Customize layout
+    fig.update_layout(
+        title=f"Cluster {cluster} Top Terms (FishEnrichr)",
+        xaxis_title="Combined Score",
+        yaxis_title="Term",
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
+
+    return fig
+
+
 ### Main
 
 # Load data and set up streamlit
@@ -125,6 +176,6 @@ st.plotly_chart(fig, use_container_width=True)
 # Display cluster enrichments
 enrich_dir = "src/dyn/data/enrichr"
 df = pd.read_csv(f"{enrich_dir}/cluster_{option}.txt", sep="\t")
-df_subset = df[df["P-value"] < 0.05][["Term", "Genes"]]
-st.write(f"Cluster {option} enrichments:")
-st.write(df_subset)
+df_subset = df[["Term", "Genes", "P-value", "Combined Score"]]
+fig = plot_enrichments(df_subset, option)
+st.plotly_chart(fig, use_container_width=True)
